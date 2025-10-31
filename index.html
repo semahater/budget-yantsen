@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#B8D4E3">
+    <title>Семейный бюджет Янцен</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Chart.js для диаграмм -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-top">
+            <h1 class="header-title">💰 Бюджет Янцен</h1>
+            <div id="sync-status">⏳ Загрузка...</div>
+        </div>
+        <div class="month-selector">
+            <button class="month-btn" id="prev-month">←</button>
+            <span id="current-month">Ноябрь 2025</span>
+            <button class="month-btn" id="next-month">→</button>
+            <button class="month-btn" id="reset-month">⊕</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+        <!-- Dashboard Screen -->
+        <div class="screen active" id="dashboard-screen">
+            <!-- Balance Cards -->
+            <div class="balance-cards">
+                <div class="balance-card">
+                    <div class="balance-label">Доход</div>
+                    <div class="balance-amount" id="income-amount">0 ₽</div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-label">Расходы</div>
+                    <div class="balance-amount" id="expenses-amount">0 ₽</div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-label">Баланс</div>
+                    <div class="balance-amount" id="balance-amount">0 ₽</div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="chart-container">
+                <h3>📊 Расходы по категориям</h3>
+                <canvas id="expenses-chart"></canvas>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="transactions-list">
+                <h3>📝 Последние транзакции</h3>
+                <div id="recent-transactions"></div>
+            </div>
+
+            <!-- Add Buttons -->
+            <button class="btn-primary" id="add-expense-btn">➕ Добавить расход</button>
+            <button class="btn-primary btn-secondary" id="add-income-btn">💵 Добавить доход</button>
+        </div>
+
+        <!-- Expenses Screen -->
+        <div class="screen" id="expenses-screen">
+            <div class="search-bar">
+                <input type="text" class="search-input" id="search-input" placeholder="🔍 Поиск по названию...">
+            </div>
+
+            <div class="category-filters" id="category-filters"></div>
+
+            <div class="expenses-container">
+                <div id="expenses-list"></div>
+            </div>
+
+            <button class="btn-primary" id="add-expense-btn-2" onclick="budgetApp.openAddModal('expense')" style="margin-top: 20px;">➕ Добавить расход</button>
+        </div>
+
+        <!-- Plan Screen -->
+        <div class="screen" id="plan-screen">
+            <h2 style="margin-bottom: 20px;">📋 План расходов</h2>
+            <div class="plan-container" id="plan-list"></div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div class="screen" id="settings-screen">
+            <div class="settings-container">
+                <div class="settings-item">
+                    <h3>👥 Профили</h3>
+                    <p>Семён и Татьяна</p>
+                </div>
+
+                <div class="settings-item">
+                    <h3>☁️ Синхронизация</h3>
+                    <p>Последняя: <span id="last-sync-time">Никогда</span></p>
+                    <button class="btn-primary" id="sync-now-btn">🔄 Синхронизировать сейчас</button>
+                </div>
+
+                <div class="settings-item">
+                    <h3>ℹ️ О приложении</h3>
+                    <p>Версия: <span id="app-version">2.1</span></p>
+                </div>
+
+                <div class="settings-item">
+                    <h3>🗑️ Очистить данные</h3>
+                    <p>Удалить все транзакции и сбросить настройки</p>
+                    <button class="btn-primary" id="clear-cache-btn" style="background: var(--error);">Очистить кеш</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-items">
+            <a class="nav-item active" data-screen="dashboard">🏠</a>
+            <a class="nav-item" data-screen="expenses">📊</a>
+            <a class="nav-item" data-screen="plan">📋</a>
+            <a class="nav-item" data-screen="settings">⚙️</a>
+        </div>
+    </nav>
+
+    <!-- Transaction Modal -->
+    <div class="modal" id="transaction-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">➕ Добавить расход</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+
+            <form id="transaction-form" onsubmit="return false;">
+                <div class="form-group">
+                    <label class="form-label">Название</label>
+                    <input type="text" class="form-input" id="transaction-name" placeholder="Например: Продукты" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Сумма (₽)</label>
+                    <input type="number" class="form-input" id="transaction-amount" placeholder="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Дата</label>
+                    <input type="date" class="form-input" id="transaction-date" required>
+                </div>
+
+                <div class="form-group" id="category-group">
+                    <label class="form-label">Категория</label>
+                    <select class="form-select" id="transaction-category"></select>
+                </div>
+
+                <input type="hidden" id="transaction-type" value="expense">
+
+                <button type="button" class="btn-primary" id="save-transaction">💾 Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS Files -->
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/sheets-sync.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

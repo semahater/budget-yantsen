@@ -2,7 +2,8 @@
 class BudgetStorage {
     constructor() {
         this.initializeIfNeeded();
-        this.checkAndResetIfNewMonth();
+        // Вызов checkAndResetIfNewMonth перенесен в app.js
+        // для безопасной инициализации (после полной загрузки)
     }
     // Инициализация при первом запуске
     initializeIfNeeded() {
@@ -135,7 +136,6 @@ class BudgetStorage {
         localStorage.removeItem('budgetData');
         this.initializeIfNeeded();
     }
-
     // 📅 Проверка смены месяца
     getCurrentMonth() {
         const now = new Date();
@@ -143,7 +143,6 @@ class BudgetStorage {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         return `${year}-${month}`;
     }
-
     checkAndResetIfNewMonth() {
         const data = this.getData();
         const currentMonth = this.getCurrentMonth();

@@ -1,23 +1,24 @@
 {
   "name": "Семейный бюджет Янцен",
-  "short_name": "Бюджет Янцен",
+  "short_name": "Бюджет",
   "description": "Приложение для управления семейным бюджетом",
-  "start_url": "/",
+  "start_url": "/budget-yantsen/",
+  "scope": "/budget-yantsen/",
   "display": "standalone",
-  "background_color": "#F8F9FA",
+  "background_color": "#FFFFFF",
   "theme_color": "#B8D4E3",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23B8D4E3' width='192' height='192'/><text x='50%' y='60%' font-size='100' fill='%23fff' text-anchor='middle' dy='.3em'>💰</text></svg>",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23B8D4E3' width='512' height='512'/><text x='50%' y='60%' font-size='250' fill='%23fff' text-anchor='middle' dy='.3em'>💰</text></svg>",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

@@ -5,7 +5,6 @@ const CONFIG = {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyhUZfbJBg4RoUJw3LgNzDTK9waDIUkSUecz1FDbz27QkdgYimHchAOocRHejVKQHs9/exec',
     SYNC_INTERVAL: 30000, // 30 секунд
     VERSION: '2.1',
-
     CATEGORIES: [
         { id: 1, name: 'Дом, коммуналка, связь', limit: 56000, color: '#B8D4E3' },
         { id: 2, name: 'Долги/возвраты', limit: 5000, color: '#C8E8C4' },
@@ -20,7 +19,9 @@ const CONFIG = {
         { id: 11, name: 'Алкоголь и сигареты', limit: 0, color: '#F5A6A6' },
         { id: 12, name: 'Прочее', limit: 0, color: '#D8D8D8' }
     ],
-
     MONTHS: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
-             'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+             'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+    // Firebase Realtime Database
+    FIREBASE_DATABASE_URL: 'https://family-budget-yanzen-36ed3-default-rtdb.europe-west1.firebasedatabase.app/',
+    FIREBASE_API_KEY: 'AIzaSyB-Lcl3TFm3wZgEoFMWxoL7pSL4erZFylU'
 };

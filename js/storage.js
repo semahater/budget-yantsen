@@ -144,20 +144,31 @@ class BudgetStorage {
         return `${year}-${month}`;
     }
     checkAndResetIfNewMonth() {
-        const data = this.getData();
-        const currentMonth = this.getCurrentMonth();
-        
-        // Если это первый запуск или месяц изменился
-        if (!data.lastMonth || data.lastMonth !== currentMonth) {
-            console.log(`📅 Новый месяц (${currentMonth})! Обнуляем доход и расходы.`);
+        try {
+            // Проверка, инициализированы ли данные
+            const data = this.getData();
+            if (!data) {
+                console.warn('⚠️ Данные не инициализированы, пропускаем проверку месяца');
+                return;
+            }
             
-            data.income = 0;
-            data.expenses = 0;
-            data.transactions = [];
-            data.lastMonth = currentMonth;
+            const currentMonth = this.getCurrentMonth();
             
-            this.saveData(data);
-            console.log('✅ Данные обнулены для нового месяца');
+            // Если это первый запуск или месяц изменился
+            if (!data.lastMonth || data.lastMonth !== currentMonth) {
+                console.log(`📅 Новый месяц (${currentMonth})! Обнуляем доход и расходы.`);
+                
+                data.income = 0;
+                data.expenses = 0;
+                data.transactions = [];
+                data.lastMonth = currentMonth;
+                
+                this.saveData(data);
+                console.log('✅ Данные обнулены для нового месяца');
+            }
+        } catch (error) {
+            console.error('⚠️ Ошибка при проверке месяца:', error);
+            // Не прерываем приложение, просто логируем ошибку
         }
     }
 }

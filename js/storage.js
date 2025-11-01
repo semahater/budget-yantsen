@@ -2,8 +2,8 @@
 class BudgetStorage {
     constructor() {
         this.initializeIfNeeded();
+        this.checkAndResetIfNewMonth();
     }
-
     // Инициализация при первом запуске
     initializeIfNeeded() {
         const data = this.getData();
@@ -29,7 +29,6 @@ class BudgetStorage {
         }
         return data;
     }
-
     // Получить все данные
     getData() {
         try {
@@ -40,7 +39,6 @@ class BudgetStorage {
             return null;
         }
     }
-
     // Сохранить все данные
     saveData(data) {
         try {
@@ -51,21 +49,17 @@ class BudgetStorage {
             return false;
         }
     }
-
     // Получить транзакции текущего месяца
     getTransactions() {
         const data = this.getData();
         if (!data) return [];
-
         const monthKey = `${data.currentYear}-${String(data.currentMonth + 1).padStart(2, '0')}`;
         return data.transactions.filter(t => t.month === monthKey);
     }
-
     // Добавить транзакцию
     addTransaction(transaction) {
         const data = this.getData();
         const monthKey = `${data.currentYear}-${String(data.currentMonth + 1).padStart(2, '0')}`;
-
         const newTransaction = {
             id: Date.now().toString(),
             month: monthKey,
@@ -75,19 +69,16 @@ class BudgetStorage {
             category: transaction.category,
             type: transaction.type
         };
-
         data.transactions.push(newTransaction);
         this.saveData(data);
         return newTransaction;
     }
-
     // Удалить транзакцию
     deleteTransaction(id) {
         const data = this.getData();
         data.transactions = data.transactions.filter(t => t.id !== id);
         this.saveData(data);
     }
-
     // Обновить транзакцию
     updateTransaction(id, updates) {
         const data = this.getData();
@@ -97,26 +88,22 @@ class BudgetStorage {
             this.saveData(data);
         }
     }
-
     // Получить доход
     getIncome() {
         const data = this.getData();
         return data ? data.income : 0;
     }
-
     // Установить доход
     setIncome(amount) {
         const data = this.getData();
         data.income = parseFloat(amount);
         this.saveData(data);
     }
-
     // Получить категории
     getCategories() {
         const data = this.getData();
         return data ? data.categories : [];
     }
-
     // Обновить лимит категории
     updateCategoryLimit(categoryId, newLimit) {
         const data = this.getData();
@@ -126,13 +113,11 @@ class BudgetStorage {
             this.saveData(data);
         }
     }
-
     // Изменить текущий месяц
     changeMonth(offset) {
         const data = this.getData();
         let month = data.currentMonth + offset;
         let year = data.currentYear;
-
         if (month < 0) {
             month = 11;
             year--;
@@ -140,16 +125,40 @@ class BudgetStorage {
             month = 0;
             year++;
         }
-
         data.currentMonth = month;
         data.currentYear = year;
         this.saveData(data);
         return { month, year };
     }
-
     // Очистить все данные
     clearAll() {
         localStorage.removeItem('budgetData');
         this.initializeIfNeeded();
+    }
+
+    // 📅 Проверка смены месяца
+    getCurrentMonth() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}`;
+    }
+
+    checkAndResetIfNewMonth() {
+        const data = this.getData();
+        const currentMonth = this.getCurrentMonth();
+        
+        // Если это первый запуск или месяц изменился
+        if (!data.lastMonth || data.lastMonth !== currentMonth) {
+            console.log(`📅 Новый месяц (${currentMonth})! Обнуляем доход и расходы.`);
+            
+            data.income = 0;
+            data.expenses = 0;
+            data.transactions = [];
+            data.lastMonth = currentMonth;
+            
+            this.saveData(data);
+            console.log('✅ Данные обнулены для нового месяца');
+        }
     }
 }

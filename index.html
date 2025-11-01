@@ -7,10 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#B8D4E3">
     <title>Семейный бюджет Янцен</title>
-
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/styles.css">
-
     <!-- Chart.js для диаграмм -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -51,13 +49,13 @@
 
             <!-- Chart -->
             <div class="chart-container">
-                <h3>📊 Расходы по категориям</h3>
+                📊 Расходы по категориям
                 <canvas id="expenses-chart"></canvas>
             </div>
 
             <!-- Recent Transactions -->
             <div class="transactions-list">
-                <h3>📝 Последние транзакции</h3>
+                📝 Последние транзакции
                 <div id="recent-transactions"></div>
             </div>
 
@@ -71,13 +69,10 @@
             <div class="search-bar">
                 <input type="text" class="search-input" id="search-input" placeholder="🔍 Поиск по названию...">
             </div>
-
             <div class="category-filters" id="category-filters"></div>
-
             <div class="expenses-container">
                 <div id="expenses-list"></div>
             </div>
-
             <button class="btn-primary" id="add-expense-btn-2" onclick="budgetApp.openAddModal('expense')" style="margin-top: 20px;">➕ Добавить расход</button>
         </div>
 
@@ -91,24 +86,21 @@
         <div class="screen" id="settings-screen">
             <div class="settings-container">
                 <div class="settings-item">
-                    <h3>👥 Профили</h3>
-                    <p>Семён и Татьяна</p>
+                    👥 Профили
+                    Семён и Татьяна
                 </div>
-
                 <div class="settings-item">
-                    <h3>☁️ Синхронизация</h3>
+                    ☁️ Синхронизация
                     <p>Последняя: <span id="last-sync-time">Никогда</span></p>
                     <button class="btn-primary" id="sync-now-btn">🔄 Синхронизировать сейчас</button>
                 </div>
-
                 <div class="settings-item">
-                    <h3>ℹ️ О приложении</h3>
+                    ℹ️ О приложении
                     <p>Версия: <span id="app-version">2.1</span></p>
                 </div>
-
                 <div class="settings-item">
-                    <h3>🗑️ Очистить данные</h3>
-                    <p>Удалить все транзакции и сбросить настройки</p>
+                    🗑️ Очистить данные
+                    Удалить все транзакции и сбросить настройки
                     <button class="btn-primary" id="clear-cache-btn" style="background: var(--error);">Очистить кеш</button>
                 </div>
             </div>
@@ -130,32 +122,26 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title" id="modal-title">➕ Добавить расход</h2>
-                <button class="close-btn" id="close-modal">&times;</button>
+                <button class="close-btn" id="close-modal">×</button>
             </div>
-
             <form id="transaction-form" onsubmit="return false;">
                 <div class="form-group">
                     <label class="form-label">Название</label>
                     <input type="text" class="form-input" id="transaction-name" placeholder="Например: Продукты" required>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Сумма (₽)</label>
                     <input type="number" class="form-input" id="transaction-amount" placeholder="0" required>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Дата</label>
                     <input type="date" class="form-input" id="transaction-date" required>
                 </div>
-
                 <div class="form-group" id="category-group">
                     <label class="form-label">Категория</label>
                     <select class="form-select" id="transaction-category"></select>
                 </div>
-
                 <input type="hidden" id="transaction-type" value="expense">
-
                 <button type="button" class="btn-primary" id="save-transaction">💾 Сохранить</button>
             </form>
         </div>
@@ -164,7 +150,7 @@
     <!-- JS Files -->
     <script src="js/config.js"></script>
     <script src="js/storage.js"></script>
-    <script src="js/sheets-sync.js"></script>
+    <script src="js/firebase-sync.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
 </body>

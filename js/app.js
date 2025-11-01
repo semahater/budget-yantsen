@@ -7,10 +7,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Создаём экземпляры классов
     const storage = new BudgetStorage();
-    
-    // 📅 Безопасная проверка смены месяца (после инициализации storage)
-    storage.checkAndResetIfNewMonth();
-    
     const sync = new FirebaseSync(storage);
     await sync.initializeFirebase();
     const ui = new BudgetUI(storage, sync);

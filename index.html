@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>💰 Семейный Бюджет Янцен</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ЭКРАН 1: ГЛАВНАЯ (DASHBOARD) -->
+        <div id="screen-dashboard" class="screen active">
+            <div class="header">
+                <h1>💰 Семейный Бюджет Янцен</h1>
+                <div class="sync-status" id="sync-status">Последняя синхронизация: сейчас</div>
+            </div>
+
+            <div class="month-navigation">
+                <button class="btn-month" id="btn-prev-month">◀</button>
+                <h2 id="current-month-label">Ноябрь 2025</h2>
+                <button class="btn-month" id="btn-next-month">▶</button>
+            </div>
+
+            <div class="stats-cards">
+                <div class="stat-card income">
+                    <div class="stat-label">💰 ДОХОД</div>
+                    <div class="stat-value" id="stat-income">0 ₽</div>
+                </div>
+                <div class="stat-card expense">
+                    <div class="stat-label">💸 РАСХОДЫ</div>
+                    <div class="stat-value" id="stat-expense">0 ₽</div>
+                </div>
+                <div class="stat-card balance">
+                    <div class="stat-label">⚖️ БАЛАНС</div>
+                    <div class="stat-value" id="stat-balance">0 ₽</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-action btn-expense" id="btn-add-expense">💸 ДОБАВИТЬ РАСХОД</button>
+                <button class="btn-action btn-income" id="btn-add-income">💵 ДОБАВИТЬ ДОХОД</button>
+            </div>
+
+            <div class="chart-section">
+                <h3>Расходы по категориям</h3>
+                <div class="chart-container" id="chart-container">
+                    <canvas id="expenses-chart"></canvas>
+                </div>
+                <div id="chart-empty" class="chart-empty">Нет расходов за этот месяц</div>
+                <div id="chart-legend" class="chart-legend"></div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН 2: ОПЕРАЦИИ -->
+        <div id="screen-transactions" class="screen">
+            <div class="header">
+                <h1>✏️ Операции за <span id="transactions-month-label">Ноябрь 2025</span></h1>
+            </div>
+            <div id="transactions-list" class="transactions-list"></div>
+            <div id="transactions-empty" class="empty-message">Нет операций за этот месяц</div>
+        </div>
+
+        <!-- ЭКРАН 3: КАТЕГОРИИ -->
+        <div id="screen-categories" class="screen">
+            <div class="header">
+                <h1>📋 Категории</h1>
+                <button class="btn-primary" id="btn-add-category">➕ ДОБАВИТЬ КАТЕГОРИЮ</button>
+            </div>
+            <div id="categories-list" class="categories-list"></div>
+        </div>
+
+        <!-- ЭКРАН 4: ПАРАМЕТРЫ -->
+        <div id="screen-settings" class="screen">
+            <div class="header">
+                <h1>⚙️ Параметры</h1>
+            </div>
+
+            <div class="settings-section">
+                <h3>Статистика за всё время</h3>
+                <div class="settings-item">
+                    <span>📈 Всего доходов:</span>
+                    <span id="total-income">0 ₽</span>
+                </div>
+                <div class="settings-item">
+                    <span>📉 Всего расходов:</span>
+                    <span id="total-expenses">0 ₽</span>
+                </div>
+                <div class="settings-item">
+                    <span>💹 Средний доход/месяц:</span>
+                    <span id="avg-income">0 ₽</span>
+                </div>
+                <div class="settings-item">
+                    <span>📊 Средний расход/месяц:</span>
+                    <span id="avg-expenses">0 ₽</span>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Информация</h3>
+                <div class="settings-item">
+                    <span>🔗 Firebase:</span>
+                    <span id="firebase-status">✅ Подключен</span>
+                </div>
+                <div class="settings-item">
+                    <span>⏱️ Последняя синхронизация:</span>
+                    <span id="last-sync-time">--:--</span>
+                </div>
+                <div class="settings-item">
+                    <span>📱 ID устройства:</span>
+                    <span id="device-id">device_...</span>
+                </div>
+                <div class="settings-item">
+                    <span>📲 Версия приложения:</span>
+                    <span>3.0</span>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Действия</h3>
+                <button class="btn-secondary" id="btn-sync-now">🔄 Синхронизировать сейчас</button>
+                <button class="btn-secondary" id="btn-share">📲 Поделиться ссылкой</button>
+                <button class="btn-danger" id="btn-clear-data">⚠️ Очистить локальные данные</button>
+            </div>
+        </div>
+
+        <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-screen="dashboard">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Главная</span>
+            </button>
+            <button class="nav-btn" data-screen="transactions">
+                <span class="nav-icon">✏️</span>
+                <span class="nav-label">Операции</span>
+            </button>
+            <button class="nav-btn" data-screen="categories">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Категории</span>
+            </button>
+            <button class="nav-btn" data-screen="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Параметры</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: РАСХОД -->
+    <div id="modal-expense" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-expense-title">💸 Добавить расход</h2>
+                <button class="modal-close" data-modal="modal-expense">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Сумма *</label>
+                    <input type="number" id="expense-sum" class="form-control" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Категория *</label>
+                    <select id="expense-category" class="form-control" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <input type="text" id="expense-description" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Дата *</label>
+                    <input type="date" id="expense-date" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" data-modal="modal-expense">Отмена</button>
+                <button class="btn-primary" id="btn-save-expense">ОК</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: ДОХОД -->
+    <div id="modal-income" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-income-title">💵 Добавить доход</h2>
+                <button class="modal-close" data-modal="modal-income">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Сумма *</label>
+                    <input type="number" id="income-sum" class="form-control" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <input type="text" id="income-description" class="form-control" placeholder="Зарплата">
+                </div>
+                <div class="form-group">
+                    <label>Дата *</label>
+                    <input type="date" id="income-date" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" data-modal="modal-income">Отмена</button>
+                <button class="btn-primary" id="btn-save-income">ОК</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: КАТЕГОРИЯ -->
+    <div id="modal-category" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-category-title">📋 Добавить категорию</h2>
+                <button class="modal-close" data-modal="modal-category">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Название *</label>
+                    <input type="text" id="category-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Эмодзи</label>
+                    <input type="text" id="category-emoji" class="form-control" maxlength="2" placeholder="📌">
+                </div>
+                <div class="form-group">
+                    <label>Цвет</label>
+                    <input type="color" id="category-color" class="form-control" value="#6B7280">
+                </div>
+                <div class="form-group">
+                    <label>Лимит (0 = без лимита)</label>
+                    <input type="number" id="category-limit" class="form-control" min="0" step="1" value="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" data-modal="modal-category">Отмена</button>
+                <button class="btn-primary" id="btn-save-category">ОК</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="data.js"></script>
+    <script src="firebase-new.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

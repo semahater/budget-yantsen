@@ -386,6 +386,21 @@ const UI = {
             alert('Ссылка скопирована в буфер обмена!');
         }
     },
+    
+    exportDataAsText() {
+        const data = localStorage.getItem('familyBudgetData') || '{}';
+        const blob = new Blob([data], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'family-budget-backup.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+    },
 
     clearData() {
         if (confirm('ВЫ УВЕРЕНЫ? Это удалит ВСЕ данные безвозвратно!')) {

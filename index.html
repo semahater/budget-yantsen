@@ -49,7 +49,7 @@
 
             <!-- Диаграмма расходов -->
             <div style="margin-top: 20px; background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <h3 style="margin-top: 0; font-size: 16px; font-weight: 600; margin-bottom: 16px;">Расходы по категориям</h3>
+                <h3 style="margin-top: 0; font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #1F2937;">Расходы по категориям</h3>
                 <canvas id="expenses-chart"></canvas>
                 <div id="chart-empty" style="text-align: center; color: #999; padding: 40px 20px; display: none;">
                     Нет расходов за этот месяц
@@ -95,22 +95,22 @@
 
             <!-- Статистика за всё время -->
             <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;">
-                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Статистика за всё время</h3>
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #1F2937;">Статистика за всё время</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">📈 Всего доходов:</div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">📈 Всего доходов:</div>
                         <div style="font-size: 20px; font-weight: 700; color: #10B981;" id="stat-all-time-income">0 ₽</div>
                     </div>
                     <div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">📉 Всего расходов:</div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">📉 Всего расходов:</div>
                         <div style="font-size: 20px; font-weight: 700; color: #EF4444;" id="stat-all-time-expense">0 ₽</div>
                     </div>
                     <div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">💹 Средний доход/месяц:</div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">💹 Средний доход/месяц:</div>
                         <div style="font-size: 20px; font-weight: 700; color: #10B981;" id="stat-avg-income">0 ₽</div>
                     </div>
                     <div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">📊 Средний расход/месяц:</div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">📊 Средний расход/месяц:</div>
                         <div style="font-size: 20px; font-weight: 700; color: #EF4444;" id="stat-avg-expense">0 ₽</div>
                     </div>
                 </div>
@@ -118,32 +118,32 @@
 
             <!-- Информация -->
             <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;">
-                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Информация</h3>
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #1F2937;">Информация</h3>
                 <div style="font-size: 14px;">
                     <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
-                        <span>🔗 Firebase:</span>
-                        <span id="firebase-status">✅ Подключен</span>
+                        <span style="color: #1F2937;">🔗 Firebase:</span>
+                        <span id="firebase-status" style="color: #1F2937;">✅ Подключен</span>
                     </div>
                     <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
-                        <span>⏱️ Последняя синхронизация:</span>
-                        <span id="last-sync-time">--:--</span>
+                        <span style="color: #1F2937;">⏱️ Последняя синхронизация:</span>
+                        <span id="last-sync-time" style="color: #1F2937;">--:--</span>
                     </div>
                     <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
-                        <span>📱 ID устройства:</span>
-                        <span id="device-id" style="font-family: monospace; font-size: 12px;">device_...</span>
+                        <span style="color: #1F2937;">📱 ID устройства:</span>
+                        <span id="device-id" style="font-family: monospace; font-size: 12px; color: #1F2937;">device_...</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
-                        <span>📲 Версия приложения:</span>
-                        <span>3.0</span>
+                        <span style="color: #1F2937;">📲 Версия приложения:</span>
+                        <span style="color: #1F2937;">3.0</span>
                     </div>
                 </div>
             </div>
 
             <!-- Действия -->
             <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Действия</h3>
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #1F2937;">Действия</h3>
                 <button id="btn-sync-now" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">🔄 Синхронизировать сейчас</button>
-                <button id="btn-clear-data" class="btn-danger" style="width: 100%;">⚠️ Очистить локальные данные</button>
+                <button id="btn-export-data" class="btn-secondary" style="width: 100%;">📥 Экспортировать данные</button>
             </div>
         </div>
 
@@ -269,7 +269,7 @@
     </div>
 
     <!-- ========================================
-         МОДАЛЬ: ДЕТАЛИ КАТЕГОРИИ (НОВОЕ)
+         МОДАЛЬ: ДЕТАЛИ КАТЕГОРИИ
          ======================================== -->
     <div id="modal-category-details" class="modal" style="display: none; align-items: flex-end;">
         <div style="
@@ -319,12 +319,12 @@
             ">
                 <div style="
                     font-size: 12px;
-                    color: #6B7280;
+                    color: #1F2937;
                     font-weight: 600;
                     margin-bottom: 8px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                ">ИТОГО ПОТРАЧЕНО</div>
+                ">ИТОГО</div>
                 <div id="category-details-total" style="font-size: 32px; font-weight: 700; color: #1F2937;">0 ₽</div>
             </div>
             
@@ -337,7 +337,7 @@
                     font-size: 14px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                ">Операции в этой категории:</div>
+                ">Операции:</div>
                 <div id="category-transactions-list" style="
                     border: 1px solid #e5e7eb;
                     border-radius: 8px;
@@ -361,6 +361,41 @@
             " onmouseover="this.style.background='#1a252f'" onmouseout="this.style.background='#2C3E50'">
                 Закрыть
             </button>
+        </div>
+    </div>
+
+    <!-- ========================================
+         МОДАЛЬ: ВЫБОР МЕСЯЦА ДЛЯ ЭКСПОРТА
+         ======================================== -->
+    <div id="modal-export" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📥 Экспортировать данные</h2>
+                <button class="modal-close" onclick="UI.closeExportModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Выберите период:</label>
+                    <select id="export-period" class="form-control" style="margin-bottom: 12px;">
+                        <option value="current">Текущий месяц</option>
+                        <option value="all">Все месяцы</option>
+                    </select>
+                </div>
+                <div id="export-months-list" style="display: none; margin-bottom: 16px;">
+                    <label class="form-label">Или выберите месяцы:</label>
+                    <div id="months-checkboxes" style="
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        padding: 12px;
+                        max-height: 200px;
+                        overflow-y: auto;
+                    "></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="UI.closeExportModal()">Отмена</button>
+                <button class="btn-primary" onclick="UI.exportData()">Скачать CSV</button>
+            </div>
         </div>
     </div>
 

@@ -1,47 +1,40 @@
 // ========================================
-// APP.JS - ИСПРАВЛЕННАЯ ВЕРСИЯ 3.1
+// APP.JS - Инициализация и управление UI
+// ИСПРАВЛЕННАЯ ВЕРСИЯ С NULL-CHECKS И ДЕТАЛЯМИ КАТЕГОРИИ
 // ========================================
 
 const UI = {
     currentScreen: 'dashboard',
     chart: null,
-    editingTransactionId: null,
-    editingCategoryId: null,
 
     // ========================================
     // ИНИЦИАЛИЗАЦИЯ
     // ========================================
     init() {
-        try {
-            // Инициализация данных
-            DataManager.init();
-            FirebaseManager.init();
+        // Инициализация данных
+        DataManager.init();
+        FirebaseManager.init();
 
-            // Навигация
-            this.initNavigation();
+        // Навигация
+        this.initNavigation();
 
-            // Dashboard
-            this.initDashboard();
+        // Dashboard
+        this.initDashboard();
 
-            // Transactions
-            this.initTransactions();
+        // Transactions
+        this.initTransactions();
 
-            // Categories
-            this.initCategories();
+        // Categories
+        this.initCategories();
 
-            // Settings
-            this.initSettings();
+        // Settings
+        this.initSettings();
 
-            // Modals - ИСПРАВЛЕНО: добавлены null-checks
-            this.initModals();
+        // Modals
+        this.initModals();
 
-            // Первичное обновление UI
-            this.refreshAll();
-
-            console.log('✅ Приложение инициализировано успешно');
-        } catch (e) {
-            console.error('❌ Ошибка инициализации:', e);
-        }
+        // Первичное обновление UI
+        this.refreshAll();
     },
 
     // ========================================
@@ -50,10 +43,12 @@ const UI = {
     initNavigation() {
         const navButtons = document.querySelectorAll('.nav-btn');
         navButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const screen = btn.dataset.screen;
-                this.switchScreen(screen);
-            });
+            if (btn) {  // ← NULL-CHECK
+                btn.addEventListener('click', () => {
+                    const screen = btn.dataset.screen;
+                    this.switchScreen(screen);
+                });
+            }
         });
     },
 
@@ -92,32 +87,33 @@ const UI = {
     // DASHBOARD
     // ========================================
     initDashboard() {
-        const btnPrev = document.getElementById('btn-prev-month');
-        const btnNext = document.getElementById('btn-next-month');
-        const btnAddExpense = document.getElementById('btn-add-expense');
-        const btnAddIncome = document.getElementById('btn-add-income');
-
-        if (btnPrev) {
-            btnPrev.addEventListener('click', () => {
+        // Навигация по месяцам
+        const btnPrevMonth = document.getElementById('btn-prev-month');
+        if (btnPrevMonth) {  // ← NULL-CHECK
+            btnPrevMonth.addEventListener('click', () => {
                 DataManager.prevMonth();
                 this.refreshAll();
             });
         }
 
-        if (btnNext) {
-            btnNext.addEventListener('click', () => {
+        const btnNextMonth = document.getElementById('btn-next-month');
+        if (btnNextMonth) {  // ← NULL-CHECK
+            btnNextMonth.addEventListener('click', () => {
                 DataManager.nextMonth();
                 this.refreshAll();
             });
         }
 
-        if (btnAddExpense) {
+        // Кнопки добавления
+        const btnAddExpense = document.getElementById('btn-add-expense');
+        if (btnAddExpense) {  // ← NULL-CHECK
             btnAddExpense.addEventListener('click', () => {
                 this.openExpenseModal();
             });
         }
 
-        if (btnAddIncome) {
+        const btnAddIncome = document.getElementById('btn-add-income');
+        if (btnAddIncome) {  // ← NULL-CHECK
             btnAddIncome.addEventListener('click', () => {
                 this.openIncomeModal();
             });
@@ -125,28 +121,31 @@ const UI = {
     },
 
     updateDashboard() {
+        // Обновляем название месяца
         const monthLabel = document.getElementById('current-month-label');
         if (monthLabel) {
             monthLabel.textContent = DataManager.getMonthName();
         }
 
+        // Обновляем статистику
         const stats = DataManager.getMonthStats();
         
-        const incomeEl = document.getElementById('stat-income');
-        if (incomeEl) {
-            incomeEl.textContent = `${DataManager.formatNumber(stats.income)} ₽`;
+        const statIncome = document.getElementById('stat-income');
+        if (statIncome) {
+            statIncome.textContent = `${DataManager.formatNumber(stats.income)} ₽`;
         }
 
-        const expenseEl = document.getElementById('stat-expense');
-        if (expenseEl) {
-            expenseEl.textContent = `${DataManager.formatNumber(stats.expense)} ₽`;
+        const statExpense = document.getElementById('stat-expense');
+        if (statExpense) {
+            statExpense.textContent = `${DataManager.formatNumber(stats.expense)} ₽`;
         }
 
-        const balanceEl = document.getElementById('stat-balance');
-        if (balanceEl) {
-            balanceEl.textContent = `${DataManager.formatNumber(stats.balance)} ₽`;
+        const statBalance = document.getElementById('stat-balance');
+        if (statBalance) {
+            statBalance.textContent = `${DataManager.formatNumber(stats.balance)} ₽`;
         }
 
+        // Обновляем диаграмму
         this.updateChart();
     },
 
@@ -156,27 +155,32 @@ const UI = {
         const emptyMessage = document.getElementById('chart-empty');
         const legendContainer = document.getElementById('chart-legend');
 
-        if (!canvas || !legendContainer) return;
+        if (!canvas || !emptyMessage || !legendContainer) {
+            return;
+        }
 
         if (expenses.length === 0) {
+            // Нет данных
             if (this.chart) {
                 this.chart.destroy();
                 this.chart = null;
             }
             canvas.style.display = 'none';
-            if (emptyMessage) emptyMessage.style.display = 'block';
+            emptyMessage.style.display = 'block';
             legendContainer.innerHTML = '';
             return;
         }
 
         canvas.style.display = 'block';
-        if (emptyMessage) emptyMessage.style.display = 'none';
+        emptyMessage.style.display = 'none';
 
+        // Подготовка данных
         const labels = expenses.map(e => e.name);
         const data = expenses.map(e => e.sum);
         const colors = expenses.map(e => e.color);
         const total = data.reduce((a, b) => a + b, 0);
 
+        // Создание/обновление диаграммы
         if (this.chart) {
             this.chart.data.labels = labels;
             this.chart.data.datasets[0].data = data;
@@ -198,7 +202,9 @@ const UI = {
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: false
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -213,274 +219,254 @@ const UI = {
             });
         }
 
+        // Обновление легенды
         legendContainer.innerHTML = '';
         expenses.forEach(exp => {
             const percent = ((exp.sum / total) * 100).toFixed(1);
             const item = document.createElement('div');
             item.className = 'legend-item';
-            item.style.color = exp.color;
-            item.innerHTML = `<span style="color: ${exp.color};">■</span> ${exp.emoji} ${exp.name}: ${DataManager.formatNumber(exp.sum)} ₽ (${percent}%)`;
+            item.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px;">
+                    <div style="width: 12px; height: 12px; background: ${exp.color}; border-radius: 2px;"></div>
+                    <span style="flex: 1;">${exp.emoji} ${exp.name}</span>
+                    <span style="font-weight: 600;">${DataManager.formatNumber(exp.sum)} ₽</span>
+                </div>
+            `;
             legendContainer.appendChild(item);
         });
     },
 
     // ========================================
-    // TRANSACTIONS
+    // ТРАНЗАКЦИИ
     // ========================================
     initTransactions() {
-        // Инициализация фильтров и событий
+        const btnAddTransaction = document.getElementById('btn-add-transaction');
+        if (btnAddTransaction) {  // ← NULL-CHECK
+            btnAddTransaction.addEventListener('click', () => {
+                this.openExpenseModal();
+            });
+        }
     },
 
     updateTransactions() {
-        const list = document.getElementById('transactions-list');
-        if (!list) return;
-
         const transactions = DataManager.getTransactions();
-        const categories = DataManager.getCategories();
+        const container = document.getElementById('transactions-list');
+
+        if (!container) return;
+
+        container.innerHTML = '';
 
         if (transactions.length === 0) {
-            list.innerHTML = '<div class="empty-message">Нет операций за этот месяц</div>';
+            container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Нет операций за этот месяц</p>';
             return;
         }
 
-        list.innerHTML = '';
         transactions.forEach(tx => {
-            const category = categories[tx.category];
-            const row = document.createElement('div');
-            row.className = 'transaction-row';
+            const category = DataManager.getCategory(tx.category);
+            const item = document.createElement('div');
+            item.className = 'transaction-item';
+            item.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px;
+                border-bottom: 1px solid #eee;
+                background: white;
+                margin-bottom: 8px;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            `;
 
-            const typeClass = tx.type === 'income' ? 'income' : 'expense';
-            const sign = tx.type === 'income' ? '+' : '-';
+            const categoryEmoji = category ? category.emoji : '📌';
+            const categoryName = category ? category.name : 'Неизвестная';
+            const typeLabel = tx.type === 'income' ? '+' : '−';
+            const typeColor = tx.type === 'income' ? '#10B981' : '#EF4444';
 
-            row.innerHTML = `
-                <div class="transaction-info">
-                    <div class="transaction-category">${category ? category.emoji : '📌'} ${category ? category.name : 'Неизвестно'}</div>
-                    <div class="transaction-description">${tx.description}</div>
-                    <div class="transaction-date">${DataManager.formatDate(tx.date)}</div>
+            item.innerHTML = `
+                <div>
+                    <div style="font-weight: 600;">${categoryEmoji} ${categoryName}</div>
+                    <div style="font-size: 12px; color: #999;">${tx.description || 'Без описания'}</div>
+                    <div style="font-size: 11px; color: #999;">${DataManager.formatDate(tx.date)}</div>
                 </div>
-                <div class="transaction-actions">
-                    <div class="transaction-sum ${typeClass}">${sign}${DataManager.formatNumber(tx.sum)} ₽</div>
-                    <button class="btn-edit" data-id="${tx.id}">✏️</button>
-                    <button class="btn-delete" data-id="${tx.id}">🗑️</button>
+                <div style="font-weight: 700; color: ${typeColor}; font-size: 16px;">
+                    ${typeLabel}${DataManager.formatNumber(tx.sum)} ₽
                 </div>
             `;
 
-            // События редактирования и удаления
-            const btnEdit = row.querySelector('.btn-edit');
-            const btnDelete = row.querySelector('.btn-delete');
+            // Добавляем обработчик для удаления по клику
+            item.addEventListener('click', () => {
+                if (confirm('Удалить эту транзакцию?')) {
+                    DataManager.deleteTransaction(tx.id);
+                    this.refreshAll();
+                }
+            });
 
-            if (btnEdit) {
-                btnEdit.addEventListener('click', () => {
-                    this.editTransaction(tx.id, tx.type);
-                });
-            }
-
-            if (btnDelete) {
-                btnDelete.addEventListener('click', () => {
-                    if (confirm('Удалить операцию?')) {
-                        DataManager.deleteTransaction(tx.id);
-                        FirebaseManager.syncNow();
-                        this.refreshAll();
-                    }
-                });
-            }
-
-            list.appendChild(row);
+            container.appendChild(item);
         });
     },
 
-    editTransaction(id, type) {
-        const tx = DataManager.getTransaction(id);
-        if (!tx) return;
-
-        this.editingTransactionId = id;
-
-        if (type === 'income') {
-            this.openIncomeModal(tx);
-        } else {
-            this.openExpenseModal(tx);
-        }
-    },
-
     // ========================================
-    // CATEGORIES
+    // КАТЕГОРИИ
     // ========================================
     initCategories() {
-        const btnAdd = document.getElementById('btn-add-category');
-        if (btnAdd) {
-            btnAdd.addEventListener('click', () => {
+        const btnAddCategory = document.getElementById('btn-add-category');
+        if (btnAddCategory) {  // ← NULL-CHECK
+            btnAddCategory.addEventListener('click', () => {
                 this.openCategoryModal();
             });
         }
     },
 
     updateCategories() {
-        const list = document.getElementById('categories-list');
-        if (!list) return;
-
         const categories = DataManager.getCategories();
-        const categories_list = Object.entries(categories).map(([id, cat]) => ({
-            id,
-            ...cat
-        }));
+        const container = document.getElementById('categories-list');
 
-        if (categories_list.length === 0) {
-            list.innerHTML = '<div class="empty-message">Нет категорий</div>';
-            return;
-        }
+        if (!container) return;
 
-        list.innerHTML = '';
-        categories_list.forEach(cat => {
-            const spent = DataManager.getCategorySpent(cat.id);
-            const row = document.createElement('div');
-            row.className = 'category-row';
+        container.innerHTML = '';
 
-            row.innerHTML = `
-                <div class="category-info" style="border-left: 4px solid ${cat.color};">
-                    <div class="category-header">
-                        <span class="category-name">${cat.emoji} ${cat.name}</span>
-                        <span class="category-spent">${DataManager.formatNumber(spent)} ₽</span>
+        Object.entries(categories).forEach(([catId, category]) => {
+            const spent = DataManager.getCategorySpent(catId);
+            const item = document.createElement('div');
+            item.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px;
+                border-bottom: 1px solid #eee;
+                background: white;
+                margin-bottom: 8px;
+                border-radius: 8px;
+            `;
+
+            item.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <span style="font-size: 24px;">${category.emoji}</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600;">${category.name}</div>
+                        <div style="font-size: 12px; color: #999;">Потрачено: ${DataManager.formatNumber(spent)} ₽</div>
                     </div>
-                    ${cat.limit > 0 ? `<div class="category-limit">Лимит: ${cat.limit} ₽</div>` : ''}
                 </div>
-                <div class="category-actions">
-                    <button class="btn-view" data-id="${cat.id}">👁️</button>
-                    <button class="btn-edit-cat" data-id="${cat.id}">✏️</button>
-                    <button class="btn-delete-cat" data-id="${cat.id}">🗑️</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-view-category" data-id="${catId}" style="background: none; border: 1px solid #ddd; padding: 6px 10px; border-radius: 4px; cursor: pointer;">👁️</button>
+                    <button class="btn-edit-category" data-id="${catId}" style="background: none; border: 1px solid #ddd; padding: 6px 10px; border-radius: 4px; cursor: pointer;">✏️</button>
+                    <button class="btn-delete-category" data-id="${catId}" style="background: none; border: 1px solid #ddd; padding: 6px 10px; border-radius: 4px; cursor: pointer;">🗑️</button>
                 </div>
             `;
 
-            const btnView = row.querySelector('.btn-view');
-            const btnEdit = row.querySelector('.btn-edit-cat');
-            const btnDelete = row.querySelector('.btn-delete-cat');
+            container.appendChild(item);
 
-            if (btnView) {
-                btnView.addEventListener('click', () => {
-                    this.showCategoryDetails(cat.id);
+            // Кнопка просмотра
+            const viewBtn = item.querySelector('.btn-view-category');
+            if (viewBtn) {  // ← NULL-CHECK
+                viewBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openCategoryDetails(catId);
                 });
             }
 
-            if (btnEdit) {
-                btnEdit.addEventListener('click', () => {
-                    this.editingCategoryId = cat.id;
-                    this.openCategoryModal(cat);
+            // Кнопка редактирования
+            const editBtn = item.querySelector('.btn-edit-category');
+            if (editBtn) {  // ← NULL-CHECK
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    DataManager.editingCategoryId = catId;
+                    this.openCategoryModal();
                 });
             }
 
-            if (btnDelete) {
-                btnDelete.addEventListener('click', () => {
+            // Кнопка удаления
+            const deleteBtn = item.querySelector('.btn-delete-category');
+            if (deleteBtn) {  // ← NULL-CHECK
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     if (confirm('Удалить категорию?')) {
-                        DataManager.deleteCategory(cat.id);
-                        FirebaseManager.syncNow();
+                        DataManager.deleteCategory(catId);
                         this.refreshAll();
                     }
                 });
             }
-
-            list.appendChild(row);
         });
     },
 
-    showCategoryDetails(categoryId) {
+    // ========================================
+    // ДЕТАЛИ КАТЕГОРИИ (НОВОЕ)
+    // ========================================
+    openCategoryDetails(categoryId) {
         const category = DataManager.getCategory(categoryId);
         if (!category) return;
 
-        const transactions = DataManager.getTransactions();
-        const categoryTransactions = transactions.filter(tx => tx.category === categoryId && tx.type === 'expense');
-
+        const transactions = DataManager.getTransactionsByCategory(categoryId);
+        
         const modal = document.getElementById('modal-category-details');
-        if (!modal) {
-            console.warn('Modal category-details не найдена');
-            return;
-        }
-
-        const titleEl = modal.querySelector('.modal-title');
-        const sumEl = modal.querySelector('.category-total-sum');
-        const listEl = modal.querySelector('.category-transactions-list');
-
-        if (titleEl) {
-            titleEl.innerHTML = `${category.emoji} ${category.name}`;
-        }
-
-        const totalSum = categoryTransactions.reduce((acc, tx) => acc + tx.sum, 0);
-        if (sumEl) {
-            sumEl.textContent = `${DataManager.formatNumber(totalSum)} ₽`;
-        }
-
-        if (listEl) {
-            if (categoryTransactions.length === 0) {
-                listEl.innerHTML = '<div class="empty-message">Нет операций в этой категории за месяц</div>';
+        if (!modal) return;
+        
+        const categoryName = document.getElementById('category-details-name');
+        const categoryEmoji = document.getElementById('category-details-emoji');
+        const categoryTotal = document.getElementById('category-details-total');
+        const transactionsList = document.getElementById('category-transactions-list');
+        
+        if (categoryName) categoryName.textContent = category.name;
+        if (categoryEmoji) categoryEmoji.textContent = category.emoji;
+        
+        let total = 0;
+        if (transactionsList) {
+            transactionsList.innerHTML = '';
+            
+            if (transactions.length === 0) {
+                transactionsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Нет транзакций в этой категории</div>';
             } else {
-                listEl.innerHTML = '';
-                categoryTransactions.forEach(tx => {
+                transactions.forEach(tx => {
+                    total += tx.sum;
                     const item = document.createElement('div');
-                    item.className = 'transaction-item';
+                    item.style.cssText = `
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 12px;
+                        border-bottom: 1px solid #eee;
+                    `;
                     item.innerHTML = `
                         <div>
-                            <div class="transaction-date">${DataManager.formatDate(tx.date)}</div>
-                            <div class="transaction-description">${tx.description || 'Без описания'}</div>
+                            <div style="font-weight: 600;">${tx.description || 'Без описания'}</div>
+                            <div style="font-size: 12px; color: #999;">${DataManager.formatDate(tx.date)}</div>
                         </div>
-                        <div class="transaction-sum-detail">${DataManager.formatNumber(tx.sum)} ₽</div>
+                        <div style="font-weight: 600;">${DataManager.formatNumber(tx.sum)} ₽</div>
                     `;
-                    listEl.appendChild(item);
+                    transactionsList.appendChild(item);
                 });
             }
         }
-
+        
+        if (categoryTotal) {
+            categoryTotal.textContent = `${DataManager.formatNumber(total)} ₽`;
+        }
+        
         modal.style.display = 'flex';
     },
 
+    closeCategoryDetails() {
+        const modal = document.getElementById('modal-category-details');
+        if (modal) {  // ← NULL-CHECK
+            modal.style.display = 'none';
+        }
+    },
+
     // ========================================
-    // SETTINGS
+    // ПАРАМЕТРЫ
     // ========================================
     initSettings() {
         const btnSync = document.getElementById('btn-sync-now');
-        const btnShare = document.getElementById('btn-share');
-        const btnExport = document.getElementById('btn-export');
-        const btnClear = document.getElementById('btn-clear-data');
-
-        if (btnSync) {
+        if (btnSync) {  // ← NULL-CHECK
             btnSync.addEventListener('click', () => {
-                btnSync.disabled = true;
-                btnSync.textContent = 'Синхронизирую...';
-                FirebaseManager.syncNow().then(() => {
-                    btnSync.textContent = '✅ Синхронизировано!';
-                    setTimeout(() => {
-                        btnSync.disabled = false;
-                        btnSync.textContent = '🔄 Синхронизировать сейчас';
-                    }, 1500);
-                }).catch(() => {
-                    btnSync.disabled = false;
-                    btnSync.textContent = '🔄 Синхронизировать сейчас';
-                });
+                FirebaseManager.syncNow();
             });
         }
 
-        if (btnShare) {
-            btnShare.addEventListener('click', () => {
-                if (navigator.share) {
-                    navigator.share({
-                        title: '💰 Семейный Бюджет Янцен',
-                        text: 'Приложение для совместного управления семейным бюджетом',
-                        url: window.location.href
-                    });
-                } else {
-                    alert('Ссылка: ' + window.location.href);
-                }
-            });
-        }
-
-        if (btnExport) {
-            btnExport.addEventListener('click', () => {
-                this.exportData();
-            });
-        }
-
-        if (btnClear) {
-            btnClear.addEventListener('click', () => {
-                if (confirm('Это удалит ВСЕ локальные данные! Вы уверены?')) {
+        const btnClearData = document.getElementById('btn-clear-data');
+        if (btnClearData) {  // ← NULL-CHECK
+            btnClearData.addEventListener('click', () => {
+                if (confirm('Удалить все данные? Это нельзя отменить!')) {
                     DataManager.clearAllData();
-                    alert('✅ Локальные данные очищены');
                     this.refreshAll();
                 }
             });
@@ -488,349 +474,205 @@ const UI = {
     },
 
     updateSettings() {
-        const stats = DataManager.getAllTimeStats();
-
-        const totalIncomeEl = document.getElementById('total-income');
-        if (totalIncomeEl) {
-            totalIncomeEl.textContent = `${DataManager.formatNumber(stats.totalIncome)} ₽`;
+        const allTimeStats = DataManager.getAllTimeStats();
+        
+        const totalIncome = document.getElementById('stat-all-time-income');
+        if (totalIncome) {
+            totalIncome.textContent = `${DataManager.formatNumber(allTimeStats.totalIncome)} ₽`;
         }
 
-        const totalExpenseEl = document.getElementById('total-expense');
-        if (totalExpenseEl) {
-            totalExpenseEl.textContent = `${DataManager.formatNumber(stats.totalExpense)} ₽`;
+        const totalExpense = document.getElementById('stat-all-time-expense');
+        if (totalExpense) {
+            totalExpense.textContent = `${DataManager.formatNumber(allTimeStats.totalExpense)} ₽`;
         }
 
-        const avgIncomeEl = document.getElementById('avg-income');
-        if (avgIncomeEl) {
-            avgIncomeEl.textContent = `${DataManager.formatNumber(stats.avgIncome)} ₽`;
+        const avgIncome = document.getElementById('stat-avg-income');
+        if (avgIncome) {
+            avgIncome.textContent = `${DataManager.formatNumber(allTimeStats.avgIncome)} ₽`;
         }
 
-        const avgExpenseEl = document.getElementById('avg-expense');
-        if (avgExpenseEl) {
-            avgExpenseEl.textContent = `${DataManager.formatNumber(stats.avgExpense)} ₽`;
+        const avgExpense = document.getElementById('stat-avg-expense');
+        if (avgExpense) {
+            avgExpense.textContent = `${DataManager.formatNumber(allTimeStats.avgExpense)} ₽`;
         }
 
-        const deviceIdEl = document.getElementById('device-id');
-        if (deviceIdEl) {
-            deviceIdEl.textContent = DataManager.getDeviceId();
+        const deviceId = document.getElementById('device-id');
+        if (deviceId) {
+            deviceId.textContent = DataManager.getDeviceId();
         }
-
-        const lastSyncEl = document.getElementById('last-sync-time');
-        if (lastSyncEl) {
-            const syncTime = FirebaseManager.getLastSyncTime();
-            lastSyncEl.textContent = syncTime || '--:--';
-        }
-    },
-
-    exportData() {
-        const data = {};
-        const storage = window['local' + 'Storage'];
-
-        if (DataManager.useMemoryStorage) {
-            Object.keys(DataManager.memoryStorage).forEach(key => {
-                if (key.startsWith('budget_')) {
-                    data[key] = DataManager.memoryStorage[key];
-                }
-            });
-        } else {
-            for (let i = 0; i < storage.length; i++) {
-                const key = storage.key(i);
-                if (key && key.startsWith('budget_')) {
-                    data[key] = JSON.parse(storage.getItem(key));
-                }
-            }
-        }
-
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `budget_export_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     },
 
     // ========================================
-    // MODALS - ИСПРАВЛЕНО с null-checks
+    // МОДАЛИ
     // ========================================
     initModals() {
-        // Expense Modal
-        const expenseBtn = document.getElementById('btn-save-expense');
-        const expenseCancelBtn = document.getElementById('btn-cancel-expense');
-        
-        if (expenseBtn) {
-            expenseBtn.addEventListener('click', () => this.saveExpense());
-        }
-        if (expenseCancelBtn) {
-            expenseCancelBtn.addEventListener('click', () => this.closeExpenseModal());
-        }
-
-        // Income Modal
-        const incomeBtn = document.getElementById('btn-save-income');
-        const incomeCancelBtn = document.getElementById('btn-cancel-income');
-        
-        if (incomeBtn) {
-            incomeBtn.addEventListener('click', () => this.saveIncome());
-        }
-        if (incomeCancelBtn) {
-            incomeCancelBtn.addEventListener('click', () => this.closeIncomeModal());
-        }
-
-        // Category Modal
-        const categoryBtn = document.getElementById('btn-save-category');
-        const categoryCancelBtn = document.getElementById('btn-cancel-category');
-        
-        if (categoryBtn) {
-            categoryBtn.addEventListener('click', () => this.saveCategory());
-        }
-        if (categoryCancelBtn) {
-            categoryCancelBtn.addEventListener('click', () => this.closeCategoryModal());
-        }
-
-        // Category Details Close
-        const detailsCloseBtn = document.getElementById('btn-close-category-details');
-        if (detailsCloseBtn) {
-            detailsCloseBtn.addEventListener('click', () => this.closeCategoryDetailsModal());
-        }
-
-        // Закрытие модали при клике вне её
+        // Закрытие модалей
         document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
+            if (e.target.classList && e.target.classList.contains('modal-overlay')) {
                 e.target.style.display = 'none';
             }
         });
     },
 
-    // Expense Modal
-    openExpenseModal(tx = null) {
+    openExpenseModal() {
         const modal = document.getElementById('modal-expense');
-        if (!modal) {
-            console.warn('Modal expense не найдена');
-            return;
+        if (modal) {  // ← NULL-CHECK
+            modal.style.display = 'flex';
+            
+            const categorySelect = document.getElementById('modal-expense-category');
+            if (categorySelect) {  // ← NULL-CHECK
+                categorySelect.innerHTML = '';
+                Object.entries(DataManager.getCategories()).forEach(([catId, cat]) => {
+                    const option = document.createElement('option');
+                    option.value = catId;
+                    option.textContent = `${cat.emoji} ${cat.name}`;
+                    categorySelect.appendChild(option);
+                });
+            }
+
+            const dateInput = document.getElementById('modal-expense-date');
+            if (dateInput) {  // ← NULL-CHECK
+                dateInput.value = DataManager.getCurrentDate();
+            }
         }
-
-        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
-        const categorySelect = modal.querySelector('select[name="category"]');
-        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
-        const dateInput = modal.querySelector('input[type="date"]');
-
-        if (!sumInput || !categorySelect || !dateInput) {
-            console.warn('Не все элементы expense modal найдены');
-            return;
-        }
-
-        if (tx) {
-            sumInput.value = tx.sum;
-            categorySelect.value = tx.category;
-            descInput.value = tx.description || '';
-            dateInput.value = tx.date;
-        } else {
-            sumInput.value = '';
-            categorySelect.value = Object.keys(DataManager.getCategories())[0] || 'cat_012';
-            descInput.value = '';
-            dateInput.value = DataManager.getCurrentDate();
-        }
-
-        modal.style.display = 'flex';
     },
 
     closeExpenseModal() {
         const modal = document.getElementById('modal-expense');
-        if (modal) {
+        if (modal) {  // ← NULL-CHECK
             modal.style.display = 'none';
         }
     },
 
     saveExpense() {
-        const modal = document.getElementById('modal-expense');
-        if (!modal) return;
+        const sumInput = document.getElementById('modal-expense-sum');
+        const categorySelect = document.getElementById('modal-expense-category');
+        const descriptionInput = document.getElementById('modal-expense-description');
+        const dateInput = document.getElementById('modal-expense-date');
 
-        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
-        const categorySelect = modal.querySelector('select[name="category"]');
-        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
-        const dateInput = modal.querySelector('input[type="date"]');
+        if (!sumInput || !categorySelect || !dateInput) {  // ← NULL-CHECK
+            alert('Ошибка: не все поля найдены');
+            return;
+        }
 
-        const sum = parseFloat(sumInput.value);
+        const sum = sumInput.value;
         const category = categorySelect.value;
-        const description = descInput.value;
+        const description = descriptionInput ? descriptionInput.value : '';
         const date = dateInput.value;
 
-        if (!sum || sum <= 0) {
-            alert('Введите сумму больше 0');
+        if (!sum || !category || !date) {
+            alert('Заполни все обязательные поля');
             return;
         }
 
-        if (!date) {
-            alert('Выберите дату');
-            return;
-        }
-
-        if (this.editingTransactionId) {
-            DataManager.updateTransaction(this.editingTransactionId, 'expense', sum, category, description, date);
-            this.editingTransactionId = null;
-        } else {
-            DataManager.addTransaction('expense', sum, category, description, date);
-        }
-
-        FirebaseManager.syncNow();
-        this.closeExpenseModal();
+        DataManager.addTransaction('expense', sum, category, description, date);
         this.refreshAll();
+        this.closeExpenseModal();
+
+        if (sumInput) sumInput.value = '';
+        if (categorySelect) categorySelect.value = '';
+        if (descriptionInput) descriptionInput.value = '';
     },
 
-    // Income Modal
-    openIncomeModal(tx = null) {
+    openIncomeModal() {
         const modal = document.getElementById('modal-income');
-        if (!modal) {
-            console.warn('Modal income не найдена');
-            return;
+        if (modal) {  // ← NULL-CHECK
+            modal.style.display = 'flex';
+            
+            const dateInput = document.getElementById('modal-income-date');
+            if (dateInput) {  // ← NULL-CHECK
+                dateInput.value = DataManager.getCurrentDate();
+            }
         }
-
-        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
-        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
-        const dateInput = modal.querySelector('input[type="date"]');
-
-        if (!sumInput || !dateInput) {
-            console.warn('Не все элементы income modal найдены');
-            return;
-        }
-
-        if (tx) {
-            sumInput.value = tx.sum;
-            descInput.value = tx.description || '';
-            dateInput.value = tx.date;
-        } else {
-            sumInput.value = '';
-            descInput.value = '';
-            dateInput.value = DataManager.getCurrentDate();
-        }
-
-        modal.style.display = 'flex';
     },
 
     closeIncomeModal() {
         const modal = document.getElementById('modal-income');
-        if (modal) {
+        if (modal) {  // ← NULL-CHECK
             modal.style.display = 'none';
         }
     },
 
     saveIncome() {
-        const modal = document.getElementById('modal-income');
-        if (!modal) return;
+        const sumInput = document.getElementById('modal-income-sum');
+        const descriptionInput = document.getElementById('modal-income-description');
+        const dateInput = document.getElementById('modal-income-date');
 
-        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
-        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
-        const dateInput = modal.querySelector('input[type="date"]');
+        if (!sumInput || !dateInput) {  // ← NULL-CHECK
+            alert('Ошибка: не все поля найдены');
+            return;
+        }
 
-        const sum = parseFloat(sumInput.value);
-        const description = descInput.value;
+        const sum = sumInput.value;
+        const description = descriptionInput ? descriptionInput.value : '';
         const date = dateInput.value;
 
-        if (!sum || sum <= 0) {
-            alert('Введите сумму больше 0');
+        if (!sum || !date) {
+            alert('Заполни все обязательные поля');
             return;
         }
 
-        if (!date) {
-            alert('Выберите дату');
-            return;
-        }
-
-        if (this.editingTransactionId) {
-            DataManager.updateTransaction(this.editingTransactionId, 'income', sum, 'income', description, date);
-            this.editingTransactionId = null;
-        } else {
-            DataManager.addTransaction('income', sum, 'income', description, date);
-        }
-
-        FirebaseManager.syncNow();
-        this.closeIncomeModal();
+        DataManager.addTransaction('income', sum, 'income', description, date);
         this.refreshAll();
+        this.closeIncomeModal();
+
+        if (sumInput) sumInput.value = '';
+        if (descriptionInput) descriptionInput.value = '';
     },
 
-    // Category Modal
-    openCategoryModal(cat = null) {
+    openCategoryModal() {
         const modal = document.getElementById('modal-category');
-        if (!modal) {
-            console.warn('Modal category не найдена');
-            return;
+        if (modal) {  // ← NULL-CHECK
+            modal.style.display = 'flex';
         }
-
-        const nameInput = modal.querySelector('input[placeholder="Название"]');
-        const emojiInput = modal.querySelector('input[placeholder="Эмодзи"]');
-        const colorInput = modal.querySelector('input[type="color"]');
-        const limitInput = modal.querySelector('input[placeholder="Лимит (0 = без лимита)"]');
-
-        if (!nameInput || !emojiInput || !colorInput || !limitInput) {
-            console.warn('Не все элементы category modal найдены');
-            return;
-        }
-
-        if (cat) {
-            nameInput.value = cat.name;
-            emojiInput.value = cat.emoji;
-            colorInput.value = cat.color;
-            limitInput.value = cat.limit;
-        } else {
-            nameInput.value = '';
-            emojiInput.value = '📌';
-            colorInput.value = '#6B7280';
-            limitInput.value = '0';
-        }
-
-        modal.style.display = 'flex';
     },
 
     closeCategoryModal() {
         const modal = document.getElementById('modal-category');
-        if (modal) {
+        if (modal) {  // ← NULL-CHECK
             modal.style.display = 'none';
         }
-        this.editingCategoryId = null;
-    },
-
-    closeCategoryDetailsModal() {
-        const modal = document.getElementById('modal-category-details');
-        if (modal) {
-            modal.style.display = 'none';
-        }
+        DataManager.editingCategoryId = null;
     },
 
     saveCategory() {
-        const modal = document.getElementById('modal-category');
-        if (!modal) return;
+        const nameInput = document.getElementById('modal-category-name');
+        const emojiInput = document.getElementById('modal-category-emoji');
+        const colorInput = document.getElementById('modal-category-color');
+        const limitInput = document.getElementById('modal-category-limit');
 
-        const nameInput = modal.querySelector('input[placeholder="Название"]');
-        const emojiInput = modal.querySelector('input[placeholder="Эмодзи"]');
-        const colorInput = modal.querySelector('input[type="color"]');
-        const limitInput = modal.querySelector('input[placeholder="Лимит (0 = без лимита)"]');
-
-        const name = nameInput.value.trim();
-        const emoji = emojiInput.value.trim() || '📌';
-        const color = colorInput.value;
-        const limit = parseInt(limitInput.value) || 0;
-
-        if (!name) {
-            alert('Введите название категории');
+        if (!nameInput) {  // ← NULL-CHECK
+            alert('Ошибка: не все поля найдены');
             return;
         }
 
-        if (this.editingCategoryId) {
-            DataManager.updateCategory(this.editingCategoryId, name, emoji, color, limit);
+        const name = nameInput.value;
+        const emoji = emojiInput ? emojiInput.value : '📌';
+        const color = colorInput ? colorInput.value : '#6B7280';
+        const limit = limitInput ? limitInput.value : 0;
+
+        if (!name) {
+            alert('Введи название категории');
+            return;
+        }
+
+        if (DataManager.editingCategoryId) {
+            DataManager.updateCategory(DataManager.editingCategoryId, name, emoji, color, limit);
+            DataManager.editingCategoryId = null;
         } else {
             DataManager.addCategory(name, emoji, color, limit);
         }
 
-        FirebaseManager.syncNow();
-        this.closeCategoryModal();
         this.refreshAll();
+        this.closeCategoryModal();
+
+        if (nameInput) nameInput.value = '';
+        if (emojiInput) emojiInput.value = '📌';
+        if (limitInput) limitInput.value = 0;
     },
 
     // ========================================
-    // ОБНОВЛЕНИЕ ВСЕХ ЭКРАНОВ
+    // ОБЩИЕ МЕТОДЫ
     // ========================================
     refreshAll() {
         this.updateDashboard();
@@ -840,7 +682,7 @@ const UI = {
     }
 };
 
-// Инициализация при загрузке страницы
+// Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', () => {
     UI.init();
 });

@@ -1,12 +1,13 @@
 // ========================================
-// APP.JS - ПОЛНАЯ ПЕРЕРАБОТКА
-// Добавлены: доходы в категориях, экспорт CSV, выбор месяцев
+// APP.JS - ОБНОВЛЕННАЯ ВЕРСИЯ
+// Добавлены: редактирование и удаление операций
 // ========================================
 
 const UI = {
     currentScreen: 'dashboard',
     chart: null,
-    exportMonths: [], // Для экспорта
+    exportMonths: [],
+    editingTransactionId: null, // Для редактирования операций
 
     init() {
         DataManager.init();
@@ -16,7 +17,6 @@ const UI = {
         this.initTransactions();
         this.initCategories();
         this.initSettings();
-        this.initModals();
         this.refreshAll();
     },
 
@@ -80,6 +80,7 @@ const UI = {
         const btnAddExpense = document.getElementById('btn-add-expense');
         if (btnAddExpense) {
             btnAddExpense.addEventListener('click', () => {
+                this.editingTransactionId = null;
                 this.openExpenseModal();
             });
         }
@@ -87,6 +88,7 @@ const UI = {
         const btnAddIncome = document.getElementById('btn-add-income');
         if (btnAddIncome) {
             btnAddIncome.addEventListener('click', () => {
+                this.editingTransactionId = null;
                 this.openIncomeModal();
             });
         }
@@ -194,7 +196,7 @@ const UI = {
     },
 
     // ========================================
-    // ТРАНЗАКЦИИ
+    // ТРАНЗАКЦИИ (С КНОПКАМИ РЕДАКТИРОВАНИЯ)
     // ========================================
     initTransactions() {
     },
@@ -232,22 +234,88 @@ const UI = {
             const typeColor = tx.type === 'income' ? '#10B981' : '#EF4444';
 
             item.innerHTML = `
-                <div>
+                <div style="flex: 1;">
                     <div style="font-weight: 600;">${categoryEmoji} ${categoryName}</div>
                     <div style="font-size: 12px; color: #999;">${tx.description || 'Без описания'}</div>
                     <div style="font-size: 11px; color: #999;">${DataManager.formatDate(tx.date)}</div>
                 </div>
-                <div style="font-weight: 700; color: ${typeColor}; font-size: 16px;">
-                    ${typeLabel}${DataManager.formatNumber(tx.sum)} ₽
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="font-weight: 700; color: ${typeColor}; font-size: 16px; min-width: 100px; text-align: right;">
+                        ${typeLabel}${DataManager.formatNumber(tx.sum)} ₽
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-edit-transaction" data-id="${tx.id}" style="background: none; border: 1px solid #ddd; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">✏️</button>
+                        <button class="btn-delete-transaction" data-id="${tx.id}" style="background: none; border: 1px solid #ddd; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">🗑️</button>
+                    </div>
                 </div>
             `;
 
             container.appendChild(item);
+
+            // Слушатели кнопок
+            const editBtn = item.querySelector('.btn-edit-transaction');
+            if (editBtn) {
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.editTransaction(tx.id);
+                });
+            }
+
+            const deleteBtn = item.querySelector('.btn-delete-transaction');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm('Удалить операцию?')) {
+                        DataManager.deleteTransaction(tx.id);
+                        this.refreshAll();
+                    }
+                });
+            }
         });
     },
 
+    editTransaction(txId) {
+        const tx = DataManager.getTransaction(txId);
+        if (!tx) return;
+
+        this.editingTransactionId = txId;
+
+        if (tx.type === 'income') {
+            const sumInput = document.getElementById('modal-income-sum');
+            const descriptionInput = document.getElementById('modal-income-description');
+            const dateInput = document.getElementById('modal-income-date');
+
+            if (sumInput) sumInput.value = tx.sum;
+            if (descriptionInput) descriptionInput.value = tx.description || '';
+            if (dateInput) dateInput.value = tx.date;
+
+            this.openIncomeModal();
+        } else {
+            const sumInput = document.getElementById('modal-expense-sum');
+            const categorySelect = document.getElementById('modal-expense-category');
+            const descriptionInput = document.getElementById('modal-expense-description');
+            const dateInput = document.getElementById('modal-expense-date');
+
+            if (sumInput) sumInput.value = tx.sum;
+            if (categorySelect) {
+                categorySelect.innerHTML = '';
+                Object.entries(DataManager.getCategories()).forEach(([catId, cat]) => {
+                    const option = document.createElement('option');
+                    option.value = catId;
+                    option.textContent = `${cat.emoji} ${cat.name}`;
+                    option.selected = catId === tx.category;
+                    categorySelect.appendChild(option);
+                });
+            }
+            if (descriptionInput) descriptionInput.value = tx.description || '';
+            if (dateInput) dateInput.value = tx.date;
+
+            this.openExpenseModal();
+        }
+    },
+
     // ========================================
-    // КАТЕГОРИИ (С ДОХОДАМИ СВЕРХУ)
+    // КАТЕГОРИИ
     // ========================================
     initCategories() {
         const btnAddCategory = document.getElementById('btn-add-category');
@@ -298,7 +366,6 @@ const UI = {
 
         container.appendChild(incomeItem);
 
-        // Слушатель на кнопку просмотра доходов
         const viewIncomeBtn = incomeItem.querySelector('.btn-view-income');
         if (viewIncomeBtn) {
             viewIncomeBtn.addEventListener('click', () => {
@@ -559,7 +626,7 @@ const UI = {
         if (!container) return;
         
         container.innerHTML = '';
-        this.exportMonths = []; // Сброс выбора
+        this.exportMonths = [];
 
         months.forEach(monthKey => {
             const label = document.createElement('label');
@@ -645,7 +712,6 @@ const UI = {
                                          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
                     const monthName = `${months_names[parseInt(month) - 1]} ${year}`;
 
-                    // Сортируем транзакции по дате
                     const transactions = Object.values(data.transactions).sort((a, b) => 
                         new Date(b.date) - new Date(a.date)
                     );
@@ -653,7 +719,7 @@ const UI = {
                     transactions.forEach(tx => {
                         const category = data.categories[tx.category] || { name: 'Неизвестная' };
                         const typeLabel = tx.type === 'income' ? 'Доход' : 'Расход';
-                        const description = (tx.description || '').replace(/,/g, ';'); // Экранируем запятые
+                        const description = (tx.description || '').replace(/,/g, ';');
                         
                         csvContent += `"${monthName}","${tx.date}","${typeLabel}","${description}","${category.name}",${tx.sum}\n`;
                     });
@@ -663,7 +729,6 @@ const UI = {
             }
         });
 
-        // Скачиваем файл
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
@@ -692,7 +757,7 @@ const UI = {
         modal.style.display = 'flex';
         
         const categorySelect = document.getElementById('modal-expense-category');
-        if (categorySelect) {
+        if (categorySelect && !this.editingTransactionId) {
             categorySelect.innerHTML = '';
             Object.entries(DataManager.getCategories()).forEach(([catId, cat]) => {
                 const option = document.createElement('option');
@@ -703,12 +768,22 @@ const UI = {
         }
 
         const dateInput = document.getElementById('modal-expense-date');
-        if (dateInput) dateInput.value = DataManager.getCurrentDate();
+        if (dateInput && !this.editingTransactionId) dateInput.value = DataManager.getCurrentDate();
     },
 
     closeExpenseModal() {
         const modal = document.getElementById('modal-expense');
         if (modal) modal.style.display = 'none';
+        
+        const sumInput = document.getElementById('modal-expense-sum');
+        const descriptionInput = document.getElementById('modal-expense-description');
+        const dateInput = document.getElementById('modal-expense-date');
+        
+        if (sumInput) sumInput.value = '';
+        if (descriptionInput) descriptionInput.value = '';
+        if (dateInput) dateInput.value = '';
+        
+        this.editingTransactionId = null;
     },
 
     saveExpense() {
@@ -729,12 +804,14 @@ const UI = {
             return;
         }
 
-        DataManager.addTransaction('expense', sum, category, description, date);
+        if (this.editingTransactionId) {
+            DataManager.updateTransaction(this.editingTransactionId, 'expense', sum, category, description, date);
+        } else {
+            DataManager.addTransaction('expense', sum, category, description, date);
+        }
+
         this.refreshAll();
         this.closeExpenseModal();
-
-        if (sumInput) sumInput.value = '';
-        if (descriptionInput) descriptionInput.value = '';
     },
 
     openIncomeModal() {
@@ -742,12 +819,22 @@ const UI = {
         if (modal) modal.style.display = 'flex';
         
         const dateInput = document.getElementById('modal-income-date');
-        if (dateInput) dateInput.value = DataManager.getCurrentDate();
+        if (dateInput && !this.editingTransactionId) dateInput.value = DataManager.getCurrentDate();
     },
 
     closeIncomeModal() {
         const modal = document.getElementById('modal-income');
         if (modal) modal.style.display = 'none';
+        
+        const sumInput = document.getElementById('modal-income-sum');
+        const descriptionInput = document.getElementById('modal-income-description');
+        const dateInput = document.getElementById('modal-income-date');
+        
+        if (sumInput) sumInput.value = '';
+        if (descriptionInput) descriptionInput.value = '';
+        if (dateInput) dateInput.value = '';
+        
+        this.editingTransactionId = null;
     },
 
     saveIncome() {
@@ -766,12 +853,14 @@ const UI = {
             return;
         }
 
-        DataManager.addTransaction('income', sum, 'income', description, date);
+        if (this.editingTransactionId) {
+            DataManager.updateTransaction(this.editingTransactionId, 'income', sum, 'income', description, date);
+        } else {
+            DataManager.addTransaction('income', sum, 'income', description, date);
+        }
+
         this.refreshAll();
         this.closeIncomeModal();
-
-        if (sumInput) sumInput.value = '';
-        if (descriptionInput) descriptionInput.value = '';
     },
 
     openCategoryModal() {
@@ -829,7 +918,6 @@ const UI = {
     }
 };
 
-// Инициализация
 document.addEventListener('DOMContentLoaded', () => {
     UI.init();
 });

@@ -1,5 +1,5 @@
 // ========================================
-// DATA.JS - ИСПРАВЛЕННАЯ ВЕРСИЯ 3.1
+// DATA.JS - Бизнес-логика приложения
 // ========================================
 
 const DataManager = {
@@ -29,16 +29,11 @@ const DataManager = {
         'cat_012': { name: 'Прочее', emoji: '📌', color: '#6B7280', limit: 0 }
     },
 
-    // ========================================
-    // ИНИЦИАЛИЗАЦИЯ
-    // ========================================
+    // Инициализация
     init() {
         const now = new Date();
         this.currentYear = now.getFullYear();
         this.currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-        
-        console.log(`📅 Инициализация для месяца: ${this.getMonthName()}`);
-        
         this.initLocalStorage();
     },
 
@@ -46,79 +41,57 @@ const DataManager = {
     initLocalStorage() {
         const monthKey = this.getMonthKey();
         
+        // Test if browser storage is available
+        const storage = window['local' + 'Storage'];
         try {
-            const storage = window['local' + 'Storage'];
             const test = '__storage_test__';
             storage.setItem(test, test);
             storage.removeItem(test);
             this.useMemoryStorage = false;
-            console.log('✅ localStorage доступен');
         } catch (e) {
-            console.warn('⚠️ localStorage недоступен, используем память');
+            console.warn('Хранилище недоступно, используем память');
             this.useMemoryStorage = true;
         }
 
-        // Проверяем, есть ли данные для текущего месяца
-        let data = this.getMonthData();
-        
+        const data = this.getMonthData();
         if (!data) {
-            console.log(`📝 Создаём новую структуру для ${monthKey}`);
-            
-            // Первый запуск для этого месяца - создаем структуру
+            // Первый запуск - создаем структуру
             const initialData = {
                 transactions: {},
                 categories: { ...this.baseCategories }
             };
             
-            this.saveMonthData(initialData);
-            data = initialData;
-        } else {
-            console.log(`✅ Данные найдены для ${monthKey}`);
+            if (this.useMemoryStorage) {
+                this.memoryStorage[monthKey] = initialData;
+            } else {
+                try {
+                    const storage = window['local' + 'Storage'];
+                    storage.setItem(monthKey, JSON.stringify(initialData));
+                } catch (e) {
+                    this.useMemoryStorage = true;
+                    this.memoryStorage[monthKey] = initialData;
+                }
+            }
         }
-
-        // ИСПРАВЛЕНИЕ: Убеждаемся, что структура правильная
-        if (!data.transactions) {
-            data.transactions = {};
-        }
-        if (!data.categories) {
-            data.categories = { ...this.baseCategories };
-        }
-        
-        this.saveMonthData(data);
     },
 
-    // ========================================
-    // МЕСЯЧНЫЙ КЛЮЧ И ДАННЫЕ
-    // ========================================
+    // Получить ключ для текущего месяца
     getMonthKey() {
-        const key = `budget_${this.currentYear}-${this.currentMonth}`;
-        console.log(`🔑 Месячный ключ: ${key}`);
-        return key;
+        return `budget_${this.currentYear}-${this.currentMonth}`;
     },
 
     // Получить данные текущего месяца
     getMonthData() {
         const monthKey = this.getMonthKey();
-        
         if (this.useMemoryStorage) {
-            const data = this.memoryStorage[monthKey];
-            console.log(`📦 Загружаю из памяти: ${monthKey}`);
-            return data || null;
+            return this.memoryStorage[monthKey] || null;
         }
 
         try {
             const storage = window['local' + 'Storage'];
-            const json = storage.getItem(monthKey);
-            
-            if (json) {
-                console.log(`📦 Загружаю из localStorage: ${monthKey}`);
-                return JSON.parse(json);
-            }
-            
-            console.log(`ℹ️ Данные не найдены: ${monthKey}`);
-            return null;
+            const data = storage.getItem(monthKey);
+            return data ? JSON.parse(data) : null;
         } catch (e) {
-            console.error('❌ Ошибка при чтении localStorage:', e);
             this.useMemoryStorage = true;
             return this.memoryStorage[monthKey] || null;
         }
@@ -127,25 +100,16 @@ const DataManager = {
     // Сохранить данные текущего месяца
     saveMonthData(data) {
         const monthKey = this.getMonthKey();
-        
-        if (!data || !data.transactions) {
-            console.warn('⚠️ Попытка сохранить пустые данные');
-            return;
-        }
-
         if (this.useMemoryStorage) {
             this.memoryStorage[monthKey] = data;
-            console.log(`💾 Сохраняю в память: ${monthKey}`);
             return;
         }
 
         try {
             const storage = window['local' + 'Storage'];
-            const json = JSON.stringify(data);
-            storage.setItem(monthKey, json);
-            console.log(`💾 Сохраняю в localStorage: ${monthKey} (${json.length} байт)`);
+            storage.setItem(monthKey, JSON.stringify(data));
         } catch (e) {
-            console.warn('❌ Не удалось сохранить в localStorage, переключаемся на память:', e);
+            console.warn('Не удалось сохранить, переключаемся на память');
             this.useMemoryStorage = true;
             this.memoryStorage[monthKey] = data;
         }
@@ -154,19 +118,13 @@ const DataManager = {
     // ========================================
     // ТРАНЗАКЦИИ
     // ========================================
-    addTransaction(type, sum, category, description, date) {
-        console.log(`➕ Добавляю ${type}: ${sum} ₽ в категорию ${category}`);
-        
-        const data = this.getMonthData();
-        if (!data) {
-            console.error('❌ Нет данных для сохранения транзакции');
-            return null;
-        }
 
+    // Добавить транзакцию
+    addTransaction(type, sum, category, description, date) {
+        const data = this.getMonthData();
         const timestamp = new Date(date).getTime();
         const randomId = Math.random().toString(36).substring(2, 9);
         const id = `tx_${timestamp}_${randomId}`;
-
         const transaction = {
             sum: parseFloat(sum),
             type: type, // 'income' или 'expense'
@@ -178,49 +136,36 @@ const DataManager = {
 
         data.transactions[id] = transaction;
         this.saveMonthData(data);
-        
-        console.log(`✅ Транзакция добавлена: ${id}`);
         return id;
     },
 
     // Обновить транзакцию
     updateTransaction(id, type, sum, category, description, date) {
-        console.log(`✏️ Обновляю транзакцию: ${id}`);
-        
         const data = this.getMonthData();
-        if (!data || !data.transactions[id]) {
-            console.error('❌ Транзакция не найдена:', id);
-            return false;
+        if (data.transactions[id]) {
+            const timestamp = new Date(date).getTime();
+            data.transactions[id] = {
+                sum: parseFloat(sum),
+                type: type,
+                category: category,
+                description: description || '',
+                date: date,
+                timestamp: timestamp
+            };
+            this.saveMonthData(data);
+            return true;
         }
-
-        const timestamp = new Date(date).getTime();
-        data.transactions[id] = {
-            sum: parseFloat(sum),
-            type: type,
-            category: category,
-            description: description || '',
-            date: date,
-            timestamp: timestamp
-        };
-
-        this.saveMonthData(data);
-        console.log(`✅ Транзакция обновлена: ${id}`);
-        return true;
+        return false;
     },
 
     // Удалить транзакцию
     deleteTransaction(id) {
-        console.log(`🗑️ Удаляю транзакцию: ${id}`);
-        
         const data = this.getMonthData();
-        if (data && data.transactions[id]) {
+        if (data.transactions[id]) {
             delete data.transactions[id];
             this.saveMonthData(data);
-            console.log(`✅ Транзакция удалена: ${id}`);
             return true;
         }
-
-        console.warn('⚠️ Транзакция не найдена:', id);
         return false;
     },
 
@@ -245,40 +190,42 @@ const DataManager = {
     // ========================================
     // КАТЕГОРИИ
     // ========================================
+
+    // Получить все категории
     getCategories() {
         const data = this.getMonthData();
         return data.categories || {};
     },
 
+    // Получить категорию по ID
     getCategory(id) {
         const categories = this.getCategories();
         return categories[id] || null;
     },
 
+    // 🆕 НОВАЯ ФУНКЦИЯ: Получить транзакции по категории
+    getTransactionsByCategory(categoryId) {
+        const transactions = this.getTransactions();
+        return transactions.filter(tx => tx.type === 'expense' && tx.category === categoryId);
+    },
+
     // Добавить категорию
     addCategory(name, emoji, color, limit) {
-        console.log(`➕ Добавляю категорию: ${name}`);
-        
         const data = this.getMonthData();
         const timestamp = Date.now();
         const id = `cat_${timestamp}`;
-
         data.categories[id] = {
             name: name,
             emoji: emoji || '📌',
             color: color || '#6B7280',
             limit: parseInt(limit) || 0
         };
-
         this.saveMonthData(data);
-        console.log(`✅ Категория добавлена: ${id}`);
         return id;
     },
 
     // Обновить категорию
     updateCategory(id, name, emoji, color, limit) {
-        console.log(`✏️ Обновляю категорию: ${id}`);
-        
         const data = this.getMonthData();
         if (data.categories[id]) {
             data.categories[id] = {
@@ -288,18 +235,13 @@ const DataManager = {
                 limit: parseInt(limit) || 0
             };
             this.saveMonthData(data);
-            console.log(`✅ Категория обновлена: ${id}`);
             return true;
         }
-
-        console.warn('⚠️ Категория не найдена:', id);
         return false;
     },
 
     // Удалить категорию
     deleteCategory(id) {
-        console.log(`🗑️ Удаляю категорию: ${id}`);
-        
         const data = this.getMonthData();
         if (data.categories[id]) {
             // Переместить все транзакции этой категории в "Прочее" (cat_012)
@@ -311,22 +253,20 @@ const DataManager = {
 
             delete data.categories[id];
             this.saveMonthData(data);
-            console.log(`✅ Категория удалена: ${id}`);
             return true;
         }
-
-        console.warn('⚠️ Категория не найдена:', id);
         return false;
     },
 
     // ========================================
     // СТАТИСТИКА
     // ========================================
+
+    // Получить статистику за текущий месяц
     getMonthStats() {
         const transactions = this.getTransactions();
         let income = 0;
         let expense = 0;
-
         transactions.forEach(tx => {
             if (tx.type === 'income') {
                 income += tx.sum;
@@ -349,6 +289,7 @@ const DataManager = {
         let monthsWithData = 0;
 
         if (this.useMemoryStorage) {
+            // Используем in-memory хранилище
             Object.keys(this.memoryStorage).forEach(key => {
                 if (key.startsWith('budget_')) {
                     const data = this.memoryStorage[key];
@@ -368,6 +309,7 @@ const DataManager = {
             });
         } else {
             try {
+                // Проходим по всем ключам хранилища
                 const storage = window['local' + 'Storage'];
                 for (let i = 0; i < storage.length; i++) {
                     const key = storage.key(i);
@@ -388,7 +330,7 @@ const DataManager = {
                     }
                 }
             } catch (e) {
-                console.warn('⚠️ Ошибка при получении статистики:', e);
+                console.error('Ошибка при получении статистики:', e);
             }
         }
 
@@ -403,7 +345,7 @@ const DataManager = {
         };
     },
 
-    // Получить расходы по категориям (для диаграммы)
+    // Получить расходы по категориям
     getExpensesByCategory() {
         const transactions = this.getTransactions();
         const categories = this.getCategories();
@@ -465,8 +407,6 @@ const DataManager = {
 
         this.currentMonth = String(month).padStart(2, '0');
         this.currentYear = year;
-        
-        console.log(`⬅️ Переход на предыдущий месяц: ${this.getMonthName()}`);
         this.initLocalStorage();
     },
 
@@ -483,8 +423,6 @@ const DataManager = {
 
         this.currentMonth = String(month).padStart(2, '0');
         this.currentYear = year;
-        
-        console.log(`➡️ Переход на следующий месяц: ${this.getMonthName()}`);
         this.initLocalStorage();
     },
 
@@ -523,8 +461,6 @@ const DataManager = {
     },
 
     clearAllData() {
-        console.log('🗑️ Очистка всех данных...');
-        
         if (this.useMemoryStorage) {
             const keys = Object.keys(this.memoryStorage).filter(key => key.startsWith('budget_'));
             keys.forEach(key => delete this.memoryStorage[key]);
@@ -543,7 +479,6 @@ const DataManager = {
             }
             keys.forEach(key => storage.removeItem(key));
             this.initLocalStorage();
-            console.log('✅ Данные очищены');
             return true;
         } catch (e) {
             this.useMemoryStorage = true;

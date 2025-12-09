@@ -680,13 +680,34 @@ const UI = {
 };
 
 // ========================================
+// ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ
+// ========================================
+
+function formatMonthKey(monthKey) {
+    const [year, month] = monthKey.split('-');
+    const monthsMap = {
+        '01': 'Январь',
+        '02': 'Февраль',
+        '03': 'Март',
+        '04': 'Апрель',
+        '05': 'Май',
+        '06': 'Июнь',
+        '07': 'Июль',
+        '08': 'Август',
+        '09': 'Сентябрь',
+        '10': 'Октябрь',
+        '11': 'Ноябрь',
+        '12': 'Декабрь'
+    };
+    return `${monthsMap[month]} ${year}`;
+}
+
+// ========================================
 // ЭКСПОРТ ПО МЕСЯЦАМ
 // ========================================
 
 function exportMonthToFile() {
-    // Собираем ВСЕ месяцы из localStorage
     const months = [];
-    const monthData = {};
     
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -694,12 +715,6 @@ function exportMonthToFile() {
         if (key.startsWith('budget_')) {
             const monthKey = key.replace('budget_', '');
             months.push(monthKey);
-            
-            try {
-                monthData[monthKey] = JSON.parse(localStorage.getItem(key));
-            } catch (e) {
-                console.warn(`Ошибка парсинга ${key}:`, e);
-            }
         }
     }
     
@@ -708,10 +723,8 @@ function exportMonthToFile() {
         return;
     }
     
-    // Сортируем месяцы
     months.sort().reverse();
     
-    // Создаём модаль с выбором месяца
     const modal = document.createElement('div');
     modal.id = 'export-month-modal';
     modal.className = 'modal active';
@@ -719,7 +732,7 @@ function exportMonthToFile() {
         <div class="modal-overlay" onclick="document.getElementById('export-month-modal').remove()">
             <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header">
-                    <h2>📅 ВЫБЕРИ МЕСЯЦ ДЛЯ ЭКСПОРТА</h2>
+                    <h2>📅 ЭКСПОРТИРОВАТЬ МЕСЯЦ</h2>
                     <button class="modal-close" onclick="document.getElementById('export-month-modal').remove()">✕</button>
                 </div>
                 <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
@@ -735,7 +748,7 @@ function exportMonthToFile() {
                                 font-weight: 500;
                                 transition: all 0.2s;
                             " onmouseover="this.style.background='#e8f0ff'; this.style.borderColor='#0066cc';" onmouseout="this.style.background='#f9f9f9'; this.style.borderColor='#ddd';">
-                                📆 ${getMonthNameFromKey('${month}')}
+                                📆 ${formatMonthKey(month)}
                             </button>
                         `).join('')}
                     </div>
@@ -750,26 +763,6 @@ function exportMonthToFile() {
     document.body.appendChild(modal);
 }
 
-function getMonthNameFromKey(monthKey) {
-    const [year, month] = monthKey.split('-');
-    const months = {
-        '01': 'Январь',
-        '02': 'Февраль',
-        '03': 'Март',
-        '04': 'Апрель',
-        '05': 'Май',
-        '06': 'Июнь',
-        '07': 'Июль',
-        '08': 'Август',
-        '09': 'Сентябрь',
-        '10': 'Октябрь',
-        '11': 'Ноябрь',
-        '12': 'Декабрь'
-    };
-    return `${months[month]} ${year}`;
-}
-
-
 function downloadMonthData(monthKey) {
     try {
         const data = localStorage.getItem(`budget_${monthKey}`);
@@ -780,35 +773,25 @@ function downloadMonthData(monthKey) {
         }
         
         const parsed = JSON.parse(data);
-        
-        // Создаём красивый JSON
         const jsonString = JSON.stringify(parsed, null, 2);
-        
-        // Создаём blob
         const blob = new Blob([jsonString], { type: 'application/json' });
-        
-        // Создаём ссылку для скачивания
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = `budget_${monthKey}.json`;
         
-        // Скачиваем файл
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        // Очищаем объект URL
         URL.revokeObjectURL(url);
         
-        // Закрываем модаль
         const modal = document.getElementById('export-month-modal');
         if (modal) modal.remove();
         
         alert(`✅ Файл budget_${monthKey}.json скачан!`);
         
     } catch (error) {
-        console.error('❌ Ошибка при скачивании:', error);
+        console.error('❌ Ошибка:', error);
         alert('❌ Ошибка при скачивании файла');
     }
 }
@@ -831,37 +814,35 @@ function importMonthFromFile() {
             try {
                 const data = JSON.parse(event.target.result);
                 
-                // Проверяем структуру данных
-                if (!data.categories && !data.transactions) {
-                    alert('❌ Неверный формат файла!');
+                if (!data.categories || !data.transactions) {
+                    alert('❌ Неверный формат файла! Должны быть поля "categories" и "transactions"');
                     return;
                 }
                 
-                // Извлекаем месяц из названия файла
                 const filename = file.name;
                 const monthMatch = filename.match(/budget_(\d{4}-\d{2})/);
                 
                 if (!monthMatch) {
-                    alert('❌ Не могу определить месяц из названия файла!');
+                    alert('❌ Имя файла должно быть формата: budget_2025-11.json');
                     return;
                 }
                 
                 const monthKey = monthMatch[1];
+                const monthName = formatMonthKey(monthKey);
                 
-                // Подтверждение
-                if (confirm(`Импортировать данные за ${getMonthNameFromKey(monthKey)}?`)) {
+                if (confirm(`Импортировать данные за ${monthName}?\n\nСуществующие данные будут перезаписаны!`)) {
                     localStorage.setItem(`budget_${monthKey}`, JSON.stringify(data));
                     
                     if (window.UI) {
                         window.UI.refreshAll();
                     }
                     
-                    alert(`✅ Данные за ${getMonthNameFromKey(monthKey)} восстановлены!`);
+                    alert(`✅ Данные за ${monthName} восстановлены!`);
                 }
                 
             } catch (error) {
-                console.error('❌ Ошибка парсинга JSON:', error);
-                alert('❌ Ошибка: неверный формат JSON в файле');
+                console.error('❌ Ошибка парсинга:', error);
+                alert('❌ Ошибка: неверный формат JSON');
             }
         };
         
@@ -875,7 +856,6 @@ function importMonthFromFile() {
 // ЗАПУСК ПРИЛОЖЕНИЯ
 // ========================================
 
-// Ждем загрузки DOM
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         UI.init();
@@ -884,5 +864,4 @@ if (document.readyState === 'loading') {
     UI.init();
 }
 
-// Экспорт для доступа из других модулей
 window.UI = UI;

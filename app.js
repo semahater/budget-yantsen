@@ -343,6 +343,10 @@ const UI = {
             this.shareLink();
         });
 
+        document.getElementById('btn-export-data').addEventListener('click', () => {
+            exportDataAsText();
+        });
+
         document.getElementById('btn-clear-data').addEventListener('click', () => {
             this.clearData();
         });
@@ -385,21 +389,6 @@ const UI = {
             document.body.removeChild(input);
             alert('Ссылка скопирована в буфер обмена!');
         }
-    },
-    
-    exportDataAsText() {
-        const data = localStorage.getItem('familyBudgetData') || '{}';
-        const blob = new Blob([data], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'family-budget-backup.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        URL.revokeObjectURL(url);
     },
 
     clearData() {
@@ -685,6 +674,104 @@ const UI = {
         }
     }
 };
+
+// ========================================
+// ФУНКЦИИ ЭКСПОРТА И ИМПОРТА ДАННЫХ
+// ========================================
+
+function getCurrentMonth() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+}
+
+function exportDataAsText() {
+    const monthKey = `budget_${getCurrentMonth()}`;
+    const storedData = localStorage.getItem(monthKey);
+    
+    if (!storedData) {
+        alert('❌ Нет локальных данных для экспорта!');
+        return;
+    }
+    
+    // Красивый JSON
+    const prettyJSON = JSON.stringify(JSON.parse(storedData), null, 2);
+    
+    // Создаём модаль с текстом
+    const exportModal = document.createElement('div');
+    exportModal.id = 'export-modal';
+    exportModal.className = 'modal active';
+    exportModal.innerHTML = `
+        <div class="modal-overlay" onclick="document.getElementById('export-modal').remove()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2>📥 ЭКСПОРТИРОВАТЬ ДАННЫЕ</h2>
+                    <button class="modal-close" onclick="document.getElementById('export-modal').remove()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size: 12px; color: #999; margin-bottom: 10px;">
+                        💡 Скопируй весь текст ниже (Ctrl+A → Ctrl+C) и отправь мне
+                    </p>
+                    <textarea id="export-text" readonly style="
+                        width: 100%;
+                        height: 300px;
+                        padding: 10px;
+                        font-family: monospace;
+                        font-size: 11px;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        background: #f5f5f5;
+                        color: #333;
+                        box-sizing: border-box;
+                    ">${prettyJSON}</textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="document.getElementById('export-modal').remove()">Закрыть</button>
+                    <button class="btn-primary" id="btn-copy-export" onclick="copyExportText()">📋 Скопировать</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(exportModal);
+    setTimeout(() => {
+        document.getElementById('export-text').select();
+    }, 100);
+}
+
+function copyExportText() {
+    const textarea = document.getElementById('export-text');
+    textarea.select();
+    document.execCommand('copy');
+    
+    const btn = document.getElementById('btn-copy-export');
+    btn.textContent = '✅ Скопировано!';
+    setTimeout(() => {
+        btn.textContent = '📋 Скопировать';
+    }, 2000);
+}
+
+function importDataFromText(jsonText) {
+    try {
+        const data = JSON.parse(jsonText);
+        const monthKey = `budget_${getCurrentMonth()}`;
+        localStorage.setItem(monthKey, JSON.stringify(data));
+        console.log('✅ Данные восстановлены из JSON');
+        alert('✅ Данные успешно восстановлены!');
+        
+        // Обновляем UI
+        if (window.UI) {
+            UI.refreshAll();
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка импорта:', error);
+        alert('❌ Ошибка: неверный формат JSON');
+        return false;
+    }
+}
 
 // ========================================
 // ЗАПУСК ПРИЛОЖЕНИЯ

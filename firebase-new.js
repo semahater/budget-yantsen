@@ -1,5 +1,6 @@
 // ========================================
-// FIREBASE-NEW.JS - Firebase интеграция 
+// FIREBASE-NEW.JS - Firebase интеграция (ИСПРАВЛЕННАЯ ВЕРСИЯ 2)
+// С ЗАЩИТОЙ ОТ ПЕРЕЗАПИСИ ПУСТЫХ ДАННЫХ
 // ========================================
 
 const FirebaseManager = {
@@ -159,6 +160,16 @@ const FirebaseManager = {
         }
     },
 
+    // ✅ ЗАЩИТА: проверить, что данные не пусто
+    hasValidData(data) {
+        if (!data) return false;
+        
+        const hasTransactions = data.transactions && Object.keys(data.transactions).length > 0;
+        const hasCategories = data.categories && Object.keys(data.categories).length > 0;
+        
+        return hasTransactions || hasCategories;
+    },
+
     // Синхронизировать текущий месяц (загрузить локальные → отправить в Firebase)
     async syncCurrentMonth() {
         console.log('🔄 Начинаем синхронизацию текущего месяца...');
@@ -166,8 +177,8 @@ const FirebaseManager = {
         // Получаем локальные данные
         const localData = this.getLocalData();
 
-        if (!localData || !localData.transactions) {
-            console.warn('⚠️ Локальные транзакции отсутствуют, синхронизация пропущена');
+        if (!this.hasValidData(localData)) {
+            console.warn('⚠️ Локальные данные пусто или невалидны, синхронизация пропущена');
             return false;
         }
 
@@ -198,23 +209,25 @@ const FirebaseManager = {
         return success;
     },
 
-    // Загрузить данные из Firebase в localStorage
+    // ✅ ЗАЩИТА: загрузить данные из Firebase в localStorage ТОЛЬКО если Firebase не пустой
     async syncFromFirebase() {
         console.log('⬇️ Загружаем данные из Firebase в localStorage...');
 
         const firebaseData = await this.loadFromFirebase();
 
-        if (firebaseData && (firebaseData.categories || firebaseData.transactions)) {
-            // Сохраняем в localStorage
-            this.saveLocalData(firebaseData);
-            this.lastSyncTime = new Date();
-            this.updateSyncStatus();
-            console.log('✅ Данные загружены из Firebase');
-            return true;
+        // ✅ НОВАЯ ЗАЩИТА: если Firebase пустой, НЕ перезаписываем localStorage!
+        if (!this.hasValidData(firebaseData)) {
+            console.warn('⚠️ Firebase пустой или недоступен, NOT перезаписываем localStorage');
+            return false;
         }
 
-        console.warn('⚠️ Firebase пусто или недоступно');
-        return false;
+        // Только если Firebase имеет валидные данные - сохраняем в localStorage
+        console.log('✅ Firebase имеет данные, обновляем localStorage');
+        this.saveLocalData(firebaseData);
+        this.lastSyncTime = new Date();
+        this.updateSyncStatus();
+        console.log('✅ Данные загружены из Firebase');
+        return true;
     },
 
     // ========================================
@@ -226,9 +239,9 @@ const FirebaseManager = {
 
         // Первая загрузка при инициализации
         this.syncFromFirebase().then(() => {
-            if (window.UIController) {
+            if (window.UI) {
                 console.log('🔄 Обновляем UI после первой загрузки');
-                window.UIController.refreshAll();
+                window.UI.refreshAll();
             }
         });
 
@@ -301,14 +314,15 @@ const FirebaseManager = {
         if (this.isConnected) {
             console.log('✅ Firebase доступен, отправляем данные');
             await this.syncCurrentMonth();
+            // ✅ Загружаем только если Firebase не пустой
             await this.syncFromFirebase();
         } else {
             console.warn('❌ Firebase недоступен');
         }
 
         // Обновляем UI
-        if (window.UIController) {
-            window.UIController.refreshAll();
+        if (window.UI) {
+            window.UI.refreshAll();
         }
 
         if (btn) {

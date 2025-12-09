@@ -1,46 +1,52 @@
 // ========================================
-// APP.JS - Инициализация и управление UI
+// APP.JS - ИСПРАВЛЕННАЯ ВЕРСИЯ 3.1
 // ========================================
 
 const UI = {
     currentScreen: 'dashboard',
     chart: null,
+    editingTransactionId: null,
+    editingCategoryId: null,
 
     // ========================================
     // ИНИЦИАЛИЗАЦИЯ
     // ========================================
-
     init() {
-        // Инициализация данных
-        DataManager.init();
-        FirebaseManager.init();
+        try {
+            // Инициализация данных
+            DataManager.init();
+            FirebaseManager.init();
 
-        // Навигация
-        this.initNavigation();
+            // Навигация
+            this.initNavigation();
 
-        // Dashboard
-        this.initDashboard();
+            // Dashboard
+            this.initDashboard();
 
-        // Transactions
-        this.initTransactions();
+            // Transactions
+            this.initTransactions();
 
-        // Categories
-        this.initCategories();
+            // Categories
+            this.initCategories();
 
-        // Settings
-        this.initSettings();
+            // Settings
+            this.initSettings();
 
-        // Modals
-        this.initModals();
+            // Modals - ИСПРАВЛЕНО: добавлены null-checks
+            this.initModals();
 
-        // Первичное обновление UI
-        this.refreshAll();
+            // Первичное обновление UI
+            this.refreshAll();
+
+            console.log('✅ Приложение инициализировано успешно');
+        } catch (e) {
+            console.error('❌ Ошибка инициализации:', e);
+        }
     },
 
     // ========================================
     // НАВИГАЦИЯ
     // ========================================
-
     initNavigation() {
         const navButtons = document.querySelectorAll('.nav-btn');
         navButtons.forEach(btn => {
@@ -54,7 +60,7 @@ const UI = {
     switchScreen(screenName) {
         // Скрываем все экраны
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        
+
         // Показываем нужный экран
         const screen = document.getElementById(`screen-${screenName}`);
         if (screen) {
@@ -85,40 +91,62 @@ const UI = {
     // ========================================
     // DASHBOARD
     // ========================================
-
     initDashboard() {
-        // Навигация по месяцам
-        document.getElementById('btn-prev-month').addEventListener('click', () => {
-            DataManager.prevMonth();
-            this.refreshAll();
-        });
+        const btnPrev = document.getElementById('btn-prev-month');
+        const btnNext = document.getElementById('btn-next-month');
+        const btnAddExpense = document.getElementById('btn-add-expense');
+        const btnAddIncome = document.getElementById('btn-add-income');
 
-        document.getElementById('btn-next-month').addEventListener('click', () => {
-            DataManager.nextMonth();
-            this.refreshAll();
-        });
+        if (btnPrev) {
+            btnPrev.addEventListener('click', () => {
+                DataManager.prevMonth();
+                this.refreshAll();
+            });
+        }
 
-        // Кнопки добавления
-        document.getElementById('btn-add-expense').addEventListener('click', () => {
-            this.openExpenseModal();
-        });
+        if (btnNext) {
+            btnNext.addEventListener('click', () => {
+                DataManager.nextMonth();
+                this.refreshAll();
+            });
+        }
 
-        document.getElementById('btn-add-income').addEventListener('click', () => {
-            this.openIncomeModal();
-        });
+        if (btnAddExpense) {
+            btnAddExpense.addEventListener('click', () => {
+                this.openExpenseModal();
+            });
+        }
+
+        if (btnAddIncome) {
+            btnAddIncome.addEventListener('click', () => {
+                this.openIncomeModal();
+            });
+        }
     },
 
     updateDashboard() {
-        // Обновляем название месяца
-        document.getElementById('current-month-label').textContent = DataManager.getMonthName();
+        const monthLabel = document.getElementById('current-month-label');
+        if (monthLabel) {
+            monthLabel.textContent = DataManager.getMonthName();
+        }
 
-        // Обновляем статистику
         const stats = DataManager.getMonthStats();
-        document.getElementById('stat-income').textContent = `${DataManager.formatNumber(stats.income)} ₽`;
-        document.getElementById('stat-expense').textContent = `${DataManager.formatNumber(stats.expense)} ₽`;
-        document.getElementById('stat-balance').textContent = `${DataManager.formatNumber(stats.balance)} ₽`;
+        
+        const incomeEl = document.getElementById('stat-income');
+        if (incomeEl) {
+            incomeEl.textContent = `${DataManager.formatNumber(stats.income)} ₽`;
+        }
 
-        // Обновляем диаграмму
+        const expenseEl = document.getElementById('stat-expense');
+        if (expenseEl) {
+            expenseEl.textContent = `${DataManager.formatNumber(stats.expense)} ₽`;
+        }
+
+        const balanceEl = document.getElementById('stat-balance');
+        if (balanceEl) {
+            balanceEl.textContent = `${DataManager.formatNumber(stats.balance)} ₽`;
+        }
+
         this.updateChart();
     },
 
@@ -128,28 +156,27 @@ const UI = {
         const emptyMessage = document.getElementById('chart-empty');
         const legendContainer = document.getElementById('chart-legend');
 
+        if (!canvas || !legendContainer) return;
+
         if (expenses.length === 0) {
-            // Нет данных
             if (this.chart) {
                 this.chart.destroy();
                 this.chart = null;
             }
             canvas.style.display = 'none';
-            emptyMessage.style.display = 'block';
+            if (emptyMessage) emptyMessage.style.display = 'block';
             legendContainer.innerHTML = '';
             return;
         }
 
         canvas.style.display = 'block';
-        emptyMessage.style.display = 'none';
+        if (emptyMessage) emptyMessage.style.display = 'none';
 
-        // Подготовка данных
         const labels = expenses.map(e => e.name);
         const data = expenses.map(e => e.sum);
         const colors = expenses.map(e => e.color);
         const total = data.reduce((a, b) => a + b, 0);
 
-        // Создание/обновление диаграммы
         if (this.chart) {
             this.chart.data.labels = labels;
             this.chart.data.datasets[0].data = data;
@@ -171,9 +198,7 @@ const UI = {
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -188,20 +213,13 @@ const UI = {
             });
         }
 
-        // Обновление легенды
         legendContainer.innerHTML = '';
         expenses.forEach(exp => {
             const percent = ((exp.sum / total) * 100).toFixed(1);
             const item = document.createElement('div');
             item.className = 'legend-item';
-            item.innerHTML = `
-                <div class="legend-left">
-                    <div class="legend-color" style="background-color: ${exp.color}"></div>
-                    <span class="legend-emoji">${exp.emoji}</span>
-                    <span class="legend-name">${exp.name}</span>
-                </div>
-                <span class="legend-percent">${percent}%</span>
-            `;
+            item.style.color = exp.color;
+            item.innerHTML = `<span style="color: ${exp.color};">■</span> ${exp.emoji} ${exp.name}: ${DataManager.formatNumber(exp.sum)} ₽ (${percent}%)`;
             legendContainer.appendChild(item);
         });
     },
@@ -209,659 +227,620 @@ const UI = {
     // ========================================
     // TRANSACTIONS
     // ========================================
-
     initTransactions() {
-        // События будут добавлены динамически
+        // Инициализация фильтров и событий
     },
 
     updateTransactions() {
-        const transactions = DataManager.getTransactions();
-        const container = document.getElementById('transactions-list');
-        const emptyMessage = document.getElementById('transactions-empty');
-        const monthLabel = document.getElementById('transactions-month-label');
+        const list = document.getElementById('transactions-list');
+        if (!list) return;
 
-        monthLabel.textContent = DataManager.getMonthName();
+        const transactions = DataManager.getTransactions();
+        const categories = DataManager.getCategories();
 
         if (transactions.length === 0) {
-            container.innerHTML = '';
-            emptyMessage.style.display = 'block';
+            list.innerHTML = '<div class="empty-message">Нет операций за этот месяц</div>';
             return;
         }
 
-        emptyMessage.style.display = 'none';
-        container.innerHTML = '';
-
+        list.innerHTML = '';
         transactions.forEach(tx => {
-            const category = DataManager.getCategory(tx.category) || { emoji: '❓', name: 'Неизвестно' };
-            const isIncome = tx.type === 'income';
-            
-            const item = document.createElement('div');
-            item.className = 'transaction-item';
-            item.innerHTML = `
-                <div class="transaction-emoji">${isIncome ? '💰' : category.emoji}</div>
-                <div class="transaction-details">
-                    <div class="transaction-category">${isIncome ? 'Доход' : category.name}</div>
-                    <div class="transaction-description">${tx.description || '—'}</div>
+            const category = categories[tx.category];
+            const row = document.createElement('div');
+            row.className = 'transaction-row';
+
+            const typeClass = tx.type === 'income' ? 'income' : 'expense';
+            const sign = tx.type === 'income' ? '+' : '-';
+
+            row.innerHTML = `
+                <div class="transaction-info">
+                    <div class="transaction-category">${category ? category.emoji : '📌'} ${category ? category.name : 'Неизвестно'}</div>
+                    <div class="transaction-description">${tx.description}</div>
                     <div class="transaction-date">${DataManager.formatDate(tx.date)}</div>
                 </div>
-                <div class="transaction-amount ${tx.type}">${isIncome ? '+' : '-'}${DataManager.formatNumber(tx.sum)} ₽</div>
                 <div class="transaction-actions">
+                    <div class="transaction-sum ${typeClass}">${sign}${DataManager.formatNumber(tx.sum)} ₽</div>
                     <button class="btn-edit" data-id="${tx.id}">✏️</button>
                     <button class="btn-delete" data-id="${tx.id}">🗑️</button>
                 </div>
             `;
 
-            // События
-            item.querySelector('.btn-edit').addEventListener('click', () => {
-                if (tx.type === 'income') {
-                    this.openIncomeModal(tx.id);
-                } else {
-                    this.openExpenseModal(tx.id);
-                }
-            });
+            // События редактирования и удаления
+            const btnEdit = row.querySelector('.btn-edit');
+            const btnDelete = row.querySelector('.btn-delete');
 
-            item.querySelector('.btn-delete').addEventListener('click', () => {
-                this.deleteTransaction(tx.id);
-            });
+            if (btnEdit) {
+                btnEdit.addEventListener('click', () => {
+                    this.editTransaction(tx.id, tx.type);
+                });
+            }
 
-            container.appendChild(item);
+            if (btnDelete) {
+                btnDelete.addEventListener('click', () => {
+                    if (confirm('Удалить операцию?')) {
+                        DataManager.deleteTransaction(tx.id);
+                        FirebaseManager.syncNow();
+                        this.refreshAll();
+                    }
+                });
+            }
+
+            list.appendChild(row);
         });
     },
 
-    deleteTransaction(id) {
-        if (confirm('Вы уверены, что хотите удалить эту операцию?')) {
-            DataManager.deleteTransaction(id);
-            FirebaseManager.syncCurrentMonth();
-            this.refreshAll();
+    editTransaction(id, type) {
+        const tx = DataManager.getTransaction(id);
+        if (!tx) return;
+
+        this.editingTransactionId = id;
+
+        if (type === 'income') {
+            this.openIncomeModal(tx);
+        } else {
+            this.openExpenseModal(tx);
         }
     },
 
     // ========================================
     // CATEGORIES
     // ========================================
-
     initCategories() {
-        document.getElementById('btn-add-category').addEventListener('click', () => {
-            this.openCategoryModal();
-        });
+        const btnAdd = document.getElementById('btn-add-category');
+        if (btnAdd) {
+            btnAdd.addEventListener('click', () => {
+                this.openCategoryModal();
+            });
+        }
     },
 
     updateCategories() {
-        const categories = DataManager.getCategories();
-        const container = document.getElementById('categories-list');
-        container.innerHTML = '';
+        const list = document.getElementById('categories-list');
+        if (!list) return;
 
-        Object.entries(categories).forEach(([id, cat]) => {
-            const spent = DataManager.getCategorySpent(id);
-            
-            const item = document.createElement('div');
-            item.className = 'category-item';
-            item.innerHTML = `
-                <div class="category-emoji">${cat.emoji}</div>
-                <div class="category-details">
-                    <div class="category-name">${cat.name}</div>
-                    <div class="category-spent">Потрачено: ${DataManager.formatNumber(spent)} ₽</div>
-                    ${cat.limit > 0 ? `<div class="category-limit">Лимит: ${DataManager.formatNumber(cat.limit)} ₽</div>` : ''}
+        const categories = DataManager.getCategories();
+        const categories_list = Object.entries(categories).map(([id, cat]) => ({
+            id,
+            ...cat
+        }));
+
+        if (categories_list.length === 0) {
+            list.innerHTML = '<div class="empty-message">Нет категорий</div>';
+            return;
+        }
+
+        list.innerHTML = '';
+        categories_list.forEach(cat => {
+            const spent = DataManager.getCategorySpent(cat.id);
+            const row = document.createElement('div');
+            row.className = 'category-row';
+
+            row.innerHTML = `
+                <div class="category-info" style="border-left: 4px solid ${cat.color};">
+                    <div class="category-header">
+                        <span class="category-name">${cat.emoji} ${cat.name}</span>
+                        <span class="category-spent">${DataManager.formatNumber(spent)} ₽</span>
+                    </div>
+                    ${cat.limit > 0 ? `<div class="category-limit">Лимит: ${cat.limit} ₽</div>` : ''}
                 </div>
                 <div class="category-actions">
-                    <button class="btn-edit" data-id="${id}">✏️</button>
-                    <button class="btn-delete" data-id="${id}">🗑️</button>
+                    <button class="btn-view" data-id="${cat.id}">👁️</button>
+                    <button class="btn-edit-cat" data-id="${cat.id}">✏️</button>
+                    <button class="btn-delete-cat" data-id="${cat.id}">🗑️</button>
                 </div>
             `;
 
-            // События
-            item.querySelector('.btn-edit').addEventListener('click', () => {
-                this.openCategoryModal(id);
-            });
+            const btnView = row.querySelector('.btn-view');
+            const btnEdit = row.querySelector('.btn-edit-cat');
+            const btnDelete = row.querySelector('.btn-delete-cat');
 
-            item.querySelector('.btn-delete').addEventListener('click', () => {
-                this.deleteCategory(id);
-            });
+            if (btnView) {
+                btnView.addEventListener('click', () => {
+                    this.showCategoryDetails(cat.id);
+                });
+            }
 
-            container.appendChild(item);
+            if (btnEdit) {
+                btnEdit.addEventListener('click', () => {
+                    this.editingCategoryId = cat.id;
+                    this.openCategoryModal(cat);
+                });
+            }
+
+            if (btnDelete) {
+                btnDelete.addEventListener('click', () => {
+                    if (confirm('Удалить категорию?')) {
+                        DataManager.deleteCategory(cat.id);
+                        FirebaseManager.syncNow();
+                        this.refreshAll();
+                    }
+                });
+            }
+
+            list.appendChild(row);
         });
     },
 
-    deleteCategory(id) {
-        if (confirm('Вы уверены? Все операции этой категории будут перенесены в "Прочее".')) {
-            DataManager.deleteCategory(id);
-            FirebaseManager.syncCurrentMonth();
-            this.refreshAll();
+    showCategoryDetails(categoryId) {
+        const category = DataManager.getCategory(categoryId);
+        if (!category) return;
+
+        const transactions = DataManager.getTransactions();
+        const categoryTransactions = transactions.filter(tx => tx.category === categoryId && tx.type === 'expense');
+
+        const modal = document.getElementById('modal-category-details');
+        if (!modal) {
+            console.warn('Modal category-details не найдена');
+            return;
         }
+
+        const titleEl = modal.querySelector('.modal-title');
+        const sumEl = modal.querySelector('.category-total-sum');
+        const listEl = modal.querySelector('.category-transactions-list');
+
+        if (titleEl) {
+            titleEl.innerHTML = `${category.emoji} ${category.name}`;
+        }
+
+        const totalSum = categoryTransactions.reduce((acc, tx) => acc + tx.sum, 0);
+        if (sumEl) {
+            sumEl.textContent = `${DataManager.formatNumber(totalSum)} ₽`;
+        }
+
+        if (listEl) {
+            if (categoryTransactions.length === 0) {
+                listEl.innerHTML = '<div class="empty-message">Нет операций в этой категории за месяц</div>';
+            } else {
+                listEl.innerHTML = '';
+                categoryTransactions.forEach(tx => {
+                    const item = document.createElement('div');
+                    item.className = 'transaction-item';
+                    item.innerHTML = `
+                        <div>
+                            <div class="transaction-date">${DataManager.formatDate(tx.date)}</div>
+                            <div class="transaction-description">${tx.description || 'Без описания'}</div>
+                        </div>
+                        <div class="transaction-sum-detail">${DataManager.formatNumber(tx.sum)} ₽</div>
+                    `;
+                    listEl.appendChild(item);
+                });
+            }
+        }
+
+        modal.style.display = 'flex';
     },
 
     // ========================================
     // SETTINGS
     // ========================================
-
     initSettings() {
-        document.getElementById('btn-sync-now').addEventListener('click', () => {
-            FirebaseManager.syncNow();
-        });
+        const btnSync = document.getElementById('btn-sync-now');
+        const btnShare = document.getElementById('btn-share');
+        const btnExport = document.getElementById('btn-export');
+        const btnClear = document.getElementById('btn-clear-data');
 
-        document.getElementById('btn-share').addEventListener('click', () => {
-            this.shareLink();
-        });
+        if (btnSync) {
+            btnSync.addEventListener('click', () => {
+                btnSync.disabled = true;
+                btnSync.textContent = 'Синхронизирую...';
+                FirebaseManager.syncNow().then(() => {
+                    btnSync.textContent = '✅ Синхронизировано!';
+                    setTimeout(() => {
+                        btnSync.disabled = false;
+                        btnSync.textContent = '🔄 Синхронизировать сейчас';
+                    }, 1500);
+                }).catch(() => {
+                    btnSync.disabled = false;
+                    btnSync.textContent = '🔄 Синхронизировать сейчас';
+                });
+            });
+        }
 
-        document.getElementById('btn-export-data').addEventListener('click', () => {
-            exportMonthToFile();
-        });
+        if (btnShare) {
+            btnShare.addEventListener('click', () => {
+                if (navigator.share) {
+                    navigator.share({
+                        title: '💰 Семейный Бюджет Янцен',
+                        text: 'Приложение для совместного управления семейным бюджетом',
+                        url: window.location.href
+                    });
+                } else {
+                    alert('Ссылка: ' + window.location.href);
+                }
+            });
+        }
 
-        document.getElementById('btn-import-data').addEventListener('click', () => {
-            importMonthFromFile();
-        });
+        if (btnExport) {
+            btnExport.addEventListener('click', () => {
+                this.exportData();
+            });
+        }
 
-        document.getElementById('btn-clear-data').addEventListener('click', () => {
-            this.clearData();
-        });
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                if (confirm('Это удалит ВСЕ локальные данные! Вы уверены?')) {
+                    DataManager.clearAllData();
+                    alert('✅ Локальные данные очищены');
+                    this.refreshAll();
+                }
+            });
+        }
     },
 
     updateSettings() {
         const stats = DataManager.getAllTimeStats();
 
-        document.getElementById('total-income').textContent = `${DataManager.formatNumber(stats.totalIncome)} ₽`;
-        document.getElementById('total-expenses').textContent = `${DataManager.formatNumber(stats.totalExpense)} ₽`;
-        document.getElementById('avg-income').textContent = `${DataManager.formatNumber(stats.avgIncome)} ₽`;
-        document.getElementById('avg-expenses').textContent = `${DataManager.formatNumber(stats.avgExpense)} ₽`;
+        const totalIncomeEl = document.getElementById('total-income');
+        if (totalIncomeEl) {
+            totalIncomeEl.textContent = `${DataManager.formatNumber(stats.totalIncome)} ₽`;
+        }
 
-        document.getElementById('firebase-status').textContent = FirebaseManager.isConnected ? '✅ Подключен' : '❌ Ошибка';
-        document.getElementById('device-id').textContent = DataManager.getDeviceId();
+        const totalExpenseEl = document.getElementById('total-expense');
+        if (totalExpenseEl) {
+            totalExpenseEl.textContent = `${DataManager.formatNumber(stats.totalExpense)} ₽`;
+        }
 
-        if (FirebaseManager.lastSyncTime) {
-            const hours = String(FirebaseManager.lastSyncTime.getHours()).padStart(2, '0');
-            const minutes = String(FirebaseManager.lastSyncTime.getMinutes()).padStart(2, '0');
-            document.getElementById('last-sync-time').textContent = `${hours}:${minutes}`;
+        const avgIncomeEl = document.getElementById('avg-income');
+        if (avgIncomeEl) {
+            avgIncomeEl.textContent = `${DataManager.formatNumber(stats.avgIncome)} ₽`;
+        }
+
+        const avgExpenseEl = document.getElementById('avg-expense');
+        if (avgExpenseEl) {
+            avgExpenseEl.textContent = `${DataManager.formatNumber(stats.avgExpense)} ₽`;
+        }
+
+        const deviceIdEl = document.getElementById('device-id');
+        if (deviceIdEl) {
+            deviceIdEl.textContent = DataManager.getDeviceId();
+        }
+
+        const lastSyncEl = document.getElementById('last-sync-time');
+        if (lastSyncEl) {
+            const syncTime = FirebaseManager.getLastSyncTime();
+            lastSyncEl.textContent = syncTime || '--:--';
         }
     },
 
-    shareLink() {
-        const url = window.location.href;
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'Семейный Бюджет Янцен',
-                text: 'Присоединяйся к семейному бюджету',
-                url: url
-            }).catch(() => {});
-        } else {
-            // Копируем в буфер
-            const input = document.createElement('input');
-            input.value = url;
-            document.body.appendChild(input);
-            input.select();
-            document.execCommand('copy');
-            document.body.removeChild(input);
-            alert('Ссылка скопирована в буфер обмена!');
-        }
-    },
+    exportData() {
+        const data = {};
+        const storage = window['local' + 'Storage'];
 
-    clearData() {
-        if (confirm('ВЫ УВЕРЕНЫ? Это удалит ВСЕ данные безвозвратно!')) {
-            if (confirm('ЭТО ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ! Все данные будут удалены!')) {
-                DataManager.clearAllData();
-                FirebaseManager.syncCurrentMonth();
-                this.refreshAll();
-                alert('Все данные удалены.');
-            }
-        }
-    },
-
-    // ========================================
-    // MODALS
-    // ========================================
-
-    initModals() {
-        // Закрытие модалей
-        document.querySelectorAll('[data-modal]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const modalId = btn.dataset.modal;
-                this.closeModal(modalId);
-            });
-        });
-
-        // Закрытие по клику на фон
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.closeModal(modal.id);
+        if (DataManager.useMemoryStorage) {
+            Object.keys(DataManager.memoryStorage).forEach(key => {
+                if (key.startsWith('budget_')) {
+                    data[key] = DataManager.memoryStorage[key];
                 }
             });
-        });
-
-        // Закрытие по Esc
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.modal.active').forEach(modal => {
-                    this.closeModal(modal.id);
-                });
-            }
-        });
-
-        // Сохранение расхода
-        document.getElementById('btn-save-expense').addEventListener('click', () => {
-            this.saveExpense();
-        });
-
-        // Сохранение дохода
-        document.getElementById('btn-save-income').addEventListener('click', () => {
-            this.saveIncome();
-        });
-
-        // Сохранение категории
-        document.getElementById('btn-save-category').addEventListener('click', () => {
-            this.saveCategory();
-        });
-    },
-
-    openModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('active');
-        }
-    },
-
-    closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('active');
-        }
-        
-        // Сброс форм
-        if (modalId === 'modal-expense') {
-            DataManager.editingTransactionId = null;
-            document.getElementById('expense-sum').value = '';
-            document.getElementById('expense-category').value = '';
-            document.getElementById('expense-description').value = '';
-            document.getElementById('expense-date').value = DataManager.getCurrentDate();
-        } else if (modalId === 'modal-income') {
-            DataManager.editingTransactionId = null;
-            document.getElementById('income-sum').value = '';
-            document.getElementById('income-description').value = '';
-            document.getElementById('income-date').value = DataManager.getCurrentDate();
-        } else if (modalId === 'modal-category') {
-            DataManager.editingCategoryId = null;
-            document.getElementById('category-name').value = '';
-            document.getElementById('category-emoji').value = '';
-            document.getElementById('category-color').value = '#6B7280';
-            document.getElementById('category-limit').value = '0';
-        }
-    },
-
-    // EXPENSE MODAL
-    openExpenseModal(transactionId = null) {
-        const modal = document.getElementById('modal-expense');
-        const title = document.getElementById('modal-expense-title');
-        
-        // Заполняем список категорий
-        const categories = DataManager.getCategories();
-        const select = document.getElementById('expense-category');
-        select.innerHTML = '';
-        
-        Object.entries(categories).forEach(([id, cat]) => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = `${cat.emoji} ${cat.name}`;
-            select.appendChild(option);
-        });
-
-        if (transactionId) {
-            // Режим редактирования
-            title.textContent = '✏️ Редактировать расход';
-            DataManager.editingTransactionId = transactionId;
-            
-            const tx = DataManager.getTransaction(transactionId);
-            if (tx) {
-                document.getElementById('expense-sum').value = tx.sum;
-                document.getElementById('expense-category').value = tx.category;
-                document.getElementById('expense-description').value = tx.description;
-                document.getElementById('expense-date').value = tx.date;
-            }
         } else {
-            // Режим добавления
-            title.textContent = '💸 Добавить расход';
-            DataManager.editingTransactionId = null;
-            document.getElementById('expense-sum').value = '';
-            document.getElementById('expense-description').value = '';
-            document.getElementById('expense-date').value = DataManager.getCurrentDate();
+            for (let i = 0; i < storage.length; i++) {
+                const key = storage.key(i);
+                if (key && key.startsWith('budget_')) {
+                    data[key] = JSON.parse(storage.getItem(key));
+                }
+            }
         }
 
-        this.openModal('modal-expense');
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `budget_export_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
+    // ========================================
+    // MODALS - ИСПРАВЛЕНО с null-checks
+    // ========================================
+    initModals() {
+        // Expense Modal
+        const expenseBtn = document.getElementById('btn-save-expense');
+        const expenseCancelBtn = document.getElementById('btn-cancel-expense');
+        
+        if (expenseBtn) {
+            expenseBtn.addEventListener('click', () => this.saveExpense());
+        }
+        if (expenseCancelBtn) {
+            expenseCancelBtn.addEventListener('click', () => this.closeExpenseModal());
+        }
+
+        // Income Modal
+        const incomeBtn = document.getElementById('btn-save-income');
+        const incomeCancelBtn = document.getElementById('btn-cancel-income');
+        
+        if (incomeBtn) {
+            incomeBtn.addEventListener('click', () => this.saveIncome());
+        }
+        if (incomeCancelBtn) {
+            incomeCancelBtn.addEventListener('click', () => this.closeIncomeModal());
+        }
+
+        // Category Modal
+        const categoryBtn = document.getElementById('btn-save-category');
+        const categoryCancelBtn = document.getElementById('btn-cancel-category');
+        
+        if (categoryBtn) {
+            categoryBtn.addEventListener('click', () => this.saveCategory());
+        }
+        if (categoryCancelBtn) {
+            categoryCancelBtn.addEventListener('click', () => this.closeCategoryModal());
+        }
+
+        // Category Details Close
+        const detailsCloseBtn = document.getElementById('btn-close-category-details');
+        if (detailsCloseBtn) {
+            detailsCloseBtn.addEventListener('click', () => this.closeCategoryDetailsModal());
+        }
+
+        // Закрытие модали при клике вне её
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+    },
+
+    // Expense Modal
+    openExpenseModal(tx = null) {
+        const modal = document.getElementById('modal-expense');
+        if (!modal) {
+            console.warn('Modal expense не найдена');
+            return;
+        }
+
+        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
+        const categorySelect = modal.querySelector('select[name="category"]');
+        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
+        const dateInput = modal.querySelector('input[type="date"]');
+
+        if (!sumInput || !categorySelect || !dateInput) {
+            console.warn('Не все элементы expense modal найдены');
+            return;
+        }
+
+        if (tx) {
+            sumInput.value = tx.sum;
+            categorySelect.value = tx.category;
+            descInput.value = tx.description || '';
+            dateInput.value = tx.date;
+        } else {
+            sumInput.value = '';
+            categorySelect.value = Object.keys(DataManager.getCategories())[0] || 'cat_012';
+            descInput.value = '';
+            dateInput.value = DataManager.getCurrentDate();
+        }
+
+        modal.style.display = 'flex';
+    },
+
+    closeExpenseModal() {
+        const modal = document.getElementById('modal-expense');
+        if (modal) {
+            modal.style.display = 'none';
+        }
     },
 
     saveExpense() {
-        const sum = document.getElementById('expense-sum').value;
-        const category = document.getElementById('expense-category').value;
-        const description = document.getElementById('expense-description').value;
-        const date = document.getElementById('expense-date').value;
+        const modal = document.getElementById('modal-expense');
+        if (!modal) return;
 
-        if (!sum || !category || !date) {
-            alert('Заполните обязательные поля!');
+        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
+        const categorySelect = modal.querySelector('select[name="category"]');
+        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
+        const dateInput = modal.querySelector('input[type="date"]');
+
+        const sum = parseFloat(sumInput.value);
+        const category = categorySelect.value;
+        const description = descInput.value;
+        const date = dateInput.value;
+
+        if (!sum || sum <= 0) {
+            alert('Введите сумму больше 0');
             return;
         }
 
-        if (DataManager.editingTransactionId) {
-            // Редактирование
-            DataManager.updateTransaction(DataManager.editingTransactionId, 'expense', sum, category, description, date);
+        if (!date) {
+            alert('Выберите дату');
+            return;
+        }
+
+        if (this.editingTransactionId) {
+            DataManager.updateTransaction(this.editingTransactionId, 'expense', sum, category, description, date);
+            this.editingTransactionId = null;
         } else {
-            // Добавление
             DataManager.addTransaction('expense', sum, category, description, date);
         }
 
-        // Синхронизация
-        FirebaseManager.syncCurrentMonth();
-
-        this.closeModal('modal-expense');
+        FirebaseManager.syncNow();
+        this.closeExpenseModal();
         this.refreshAll();
     },
 
-    // INCOME MODAL
-    openIncomeModal(transactionId = null) {
+    // Income Modal
+    openIncomeModal(tx = null) {
         const modal = document.getElementById('modal-income');
-        const title = document.getElementById('modal-income-title');
-
-        if (transactionId) {
-            // Режим редактирования
-            title.textContent = '✏️ Редактировать доход';
-            DataManager.editingTransactionId = transactionId;
-            
-            const tx = DataManager.getTransaction(transactionId);
-            if (tx) {
-                document.getElementById('income-sum').value = tx.sum;
-                document.getElementById('income-description').value = tx.description;
-                document.getElementById('income-date').value = tx.date;
-            }
-        } else {
-            // Режим добавления
-            title.textContent = '💵 Добавить доход';
-            DataManager.editingTransactionId = null;
-            document.getElementById('income-sum').value = '';
-            document.getElementById('income-description').value = '';
-            document.getElementById('income-date').value = DataManager.getCurrentDate();
+        if (!modal) {
+            console.warn('Modal income не найдена');
+            return;
         }
 
-        this.openModal('modal-income');
+        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
+        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
+        const dateInput = modal.querySelector('input[type="date"]');
+
+        if (!sumInput || !dateInput) {
+            console.warn('Не все элементы income modal найдены');
+            return;
+        }
+
+        if (tx) {
+            sumInput.value = tx.sum;
+            descInput.value = tx.description || '';
+            dateInput.value = tx.date;
+        } else {
+            sumInput.value = '';
+            descInput.value = '';
+            dateInput.value = DataManager.getCurrentDate();
+        }
+
+        modal.style.display = 'flex';
+    },
+
+    closeIncomeModal() {
+        const modal = document.getElementById('modal-income');
+        if (modal) {
+            modal.style.display = 'none';
+        }
     },
 
     saveIncome() {
-        const sum = document.getElementById('income-sum').value;
-        const description = document.getElementById('income-description').value;
-        const date = document.getElementById('income-date').value;
+        const modal = document.getElementById('modal-income');
+        if (!modal) return;
 
-        if (!sum || !date) {
-            alert('Заполните обязательные поля!');
+        const sumInput = modal.querySelector('input[placeholder="Сумма"]');
+        const descInput = modal.querySelector('input[placeholder="Описание (опционально)"]');
+        const dateInput = modal.querySelector('input[type="date"]');
+
+        const sum = parseFloat(sumInput.value);
+        const description = descInput.value;
+        const date = dateInput.value;
+
+        if (!sum || sum <= 0) {
+            alert('Введите сумму больше 0');
             return;
         }
 
-        if (DataManager.editingTransactionId) {
-            // Редактирование
-            DataManager.updateTransaction(DataManager.editingTransactionId, 'income', sum, 'income', description, date);
+        if (!date) {
+            alert('Выберите дату');
+            return;
+        }
+
+        if (this.editingTransactionId) {
+            DataManager.updateTransaction(this.editingTransactionId, 'income', sum, 'income', description, date);
+            this.editingTransactionId = null;
         } else {
-            // Добавление
             DataManager.addTransaction('income', sum, 'income', description, date);
         }
 
-        // Синхронизация
-        FirebaseManager.syncCurrentMonth();
-
-        this.closeModal('modal-income');
+        FirebaseManager.syncNow();
+        this.closeIncomeModal();
         this.refreshAll();
     },
 
-    // CATEGORY MODAL
-    openCategoryModal(categoryId = null) {
+    // Category Modal
+    openCategoryModal(cat = null) {
         const modal = document.getElementById('modal-category');
-        const title = document.getElementById('modal-category-title');
-
-        if (categoryId) {
-            // Режим редактирования
-            title.textContent = '✏️ Редактировать категорию';
-            DataManager.editingCategoryId = categoryId;
-            
-            const cat = DataManager.getCategory(categoryId);
-            if (cat) {
-                document.getElementById('category-name').value = cat.name;
-                document.getElementById('category-emoji').value = cat.emoji;
-                document.getElementById('category-color').value = cat.color;
-                document.getElementById('category-limit').value = cat.limit;
-            }
-        } else {
-            // Режим добавления
-            title.textContent = '➕ Добавить категорию';
-            DataManager.editingCategoryId = null;
-            document.getElementById('category-name').value = '';
-            document.getElementById('category-emoji').value = '📌';
-            document.getElementById('category-color').value = '#6B7280';
-            document.getElementById('category-limit').value = '0';
+        if (!modal) {
+            console.warn('Modal category не найдена');
+            return;
         }
 
-        this.openModal('modal-category');
+        const nameInput = modal.querySelector('input[placeholder="Название"]');
+        const emojiInput = modal.querySelector('input[placeholder="Эмодзи"]');
+        const colorInput = modal.querySelector('input[type="color"]');
+        const limitInput = modal.querySelector('input[placeholder="Лимит (0 = без лимита)"]');
+
+        if (!nameInput || !emojiInput || !colorInput || !limitInput) {
+            console.warn('Не все элементы category modal найдены');
+            return;
+        }
+
+        if (cat) {
+            nameInput.value = cat.name;
+            emojiInput.value = cat.emoji;
+            colorInput.value = cat.color;
+            limitInput.value = cat.limit;
+        } else {
+            nameInput.value = '';
+            emojiInput.value = '📌';
+            colorInput.value = '#6B7280';
+            limitInput.value = '0';
+        }
+
+        modal.style.display = 'flex';
+    },
+
+    closeCategoryModal() {
+        const modal = document.getElementById('modal-category');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        this.editingCategoryId = null;
+    },
+
+    closeCategoryDetailsModal() {
+        const modal = document.getElementById('modal-category-details');
+        if (modal) {
+            modal.style.display = 'none';
+        }
     },
 
     saveCategory() {
-        const name = document.getElementById('category-name').value;
-        const emoji = document.getElementById('category-emoji').value;
-        const color = document.getElementById('category-color').value;
-        const limit = document.getElementById('category-limit').value;
+        const modal = document.getElementById('modal-category');
+        if (!modal) return;
+
+        const nameInput = modal.querySelector('input[placeholder="Название"]');
+        const emojiInput = modal.querySelector('input[placeholder="Эмодзи"]');
+        const colorInput = modal.querySelector('input[type="color"]');
+        const limitInput = modal.querySelector('input[placeholder="Лимит (0 = без лимита)"]');
+
+        const name = nameInput.value.trim();
+        const emoji = emojiInput.value.trim() || '📌';
+        const color = colorInput.value;
+        const limit = parseInt(limitInput.value) || 0;
 
         if (!name) {
-            alert('Введите название категории!');
+            alert('Введите название категории');
             return;
         }
 
-        if (DataManager.editingCategoryId) {
-            // Редактирование
-            DataManager.updateCategory(DataManager.editingCategoryId, name, emoji, color, limit);
+        if (this.editingCategoryId) {
+            DataManager.updateCategory(this.editingCategoryId, name, emoji, color, limit);
         } else {
-            // Добавление
             DataManager.addCategory(name, emoji, color, limit);
         }
 
-        // Синхронизация
-        FirebaseManager.syncCurrentMonth();
-
-        this.closeModal('modal-category');
+        FirebaseManager.syncNow();
+        this.closeCategoryModal();
         this.refreshAll();
     },
 
     // ========================================
-    // ОБНОВЛЕНИЕ ВСЕГО UI
+    // ОБНОВЛЕНИЕ ВСЕХ ЭКРАНОВ
     // ========================================
-
     refreshAll() {
         this.updateDashboard();
-        if (this.currentScreen === 'transactions') {
-            this.updateTransactions();
-        } else if (this.currentScreen === 'categories') {
-            this.updateCategories();
-        } else if (this.currentScreen === 'settings') {
-            this.updateSettings();
-        }
+        this.updateTransactions();
+        this.updateCategories();
+        this.updateSettings();
     }
 };
 
-// ========================================
-// ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ
-// ========================================
-
-function formatMonthKey(monthKey) {
-    const [year, month] = monthKey.split('-');
-    const monthsMap = {
-        '01': 'Январь',
-        '02': 'Февраль',
-        '03': 'Март',
-        '04': 'Апрель',
-        '05': 'Май',
-        '06': 'Июнь',
-        '07': 'Июль',
-        '08': 'Август',
-        '09': 'Сентябрь',
-        '10': 'Октябрь',
-        '11': 'Ноябрь',
-        '12': 'Декабрь'
-    };
-    return `${monthsMap[month]} ${year}`;
-}
-
-// ========================================
-// ЭКСПОРТ ПО МЕСЯЦАМ
-// ========================================
-
-function exportMonthToFile() {
-    const months = [];
-    
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        
-        if (key.startsWith('budget_')) {
-            const monthKey = key.replace('budget_', '');
-            months.push(monthKey);
-        }
-    }
-    
-    if (months.length === 0) {
-        alert('❌ Нет данных для экспорта!');
-        return;
-    }
-    
-    months.sort().reverse();
-    
-    const modal = document.createElement('div');
-    modal.id = 'export-month-modal';
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-overlay" onclick="document.getElementById('export-month-modal').remove()">
-            <div class="modal-content" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h2>📅 ЭКСПОРТИРОВАТЬ МЕСЯЦ</h2>
-                    <button class="modal-close" onclick="document.getElementById('export-month-modal').remove()">✕</button>
-                </div>
-                <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        ${months.map(month => `
-                            <button class="month-btn" onclick="downloadMonthData('${month}')" style="
-                                padding: 15px;
-                                border: 2px solid #ddd;
-                                border-radius: 8px;
-                                background: #f9f9f9;
-                                cursor: pointer;
-                                font-size: 14px;
-                                font-weight: 500;
-                                transition: all 0.2s;
-                            " onmouseover="this.style.background='#e8f0ff'; this.style.borderColor='#0066cc';" onmouseout="this.style.background='#f9f9f9'; this.style.borderColor='#ddd';">
-                                📆 ${formatMonthKey(month)}
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" onclick="document.getElementById('export-month-modal').remove()">Отмена</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-}
-
-function downloadMonthData(monthKey) {
-    try {
-        const data = localStorage.getItem(`budget_${monthKey}`);
-        
-        if (!data) {
-            alert('❌ Данные не найдены!');
-            return;
-        }
-        
-        const parsed = JSON.parse(data);
-        const jsonString = JSON.stringify(parsed, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `budget_${monthKey}.json`;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        const modal = document.getElementById('export-month-modal');
-        if (modal) modal.remove();
-        
-        alert(`✅ Файл budget_${monthKey}.json скачан!`);
-        
-    } catch (error) {
-        console.error('❌ Ошибка:', error);
-        alert('❌ Ошибка при скачивании файла');
-    }
-}
-
-// ========================================
-// ИМПОРТ МЕСЯЦА ИЗ ФАЙЛА
-// ========================================
-
-function importMonthFromFile() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                
-                if (!data.categories || !data.transactions) {
-                    alert('❌ Неверный формат файла! Должны быть поля "categories" и "transactions"');
-                    return;
-                }
-                
-                const filename = file.name;
-                const monthMatch = filename.match(/budget_(\d{4}-\d{2})/);
-                
-                if (!monthMatch) {
-                    alert('❌ Имя файла должно быть формата: budget_2025-11.json');
-                    return;
-                }
-                
-                const monthKey = monthMatch[1];
-                const monthName = formatMonthKey(monthKey);
-                
-                if (confirm(`Импортировать данные за ${monthName}?\n\nСуществующие данные будут перезаписаны!`)) {
-                    localStorage.setItem(`budget_${monthKey}`, JSON.stringify(data));
-                    
-                    if (window.UI) {
-                        window.UI.refreshAll();
-                    }
-                    
-                    alert(`✅ Данные за ${monthName} восстановлены!`);
-                }
-                
-            } catch (error) {
-                console.error('❌ Ошибка парсинга:', error);
-                alert('❌ Ошибка: неверный формат JSON');
-            }
-        };
-        
-        reader.readAsText(file);
-    };
-    
-    input.click();
-}
-
-// ========================================
-// ЗАПУСК ПРИЛОЖЕНИЯ
-// ========================================
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        UI.init();
-    });
-} else {
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
     UI.init();
-}
-
-window.UI = UI;
+});

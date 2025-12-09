@@ -344,7 +344,11 @@ const UI = {
         });
 
         document.getElementById('btn-export-data').addEventListener('click', () => {
-            exportAllData();
+            exportMonthToFile();
+        });
+
+        document.getElementById('btn-import-data').addEventListener('click', () => {
+            importMonthFromFile();
         });
 
         document.getElementById('btn-clear-data').addEventListener('click', () => {
@@ -676,120 +680,182 @@ const UI = {
 };
 
 // ========================================
-// ФУНКЦИИ ЭКСПОРТА И ИМПОРТА ДАННЫХ
+// ЭКСПОРТ ПО МЕСЯЦАМ
 // ========================================
 
-function exportAllData() {
-    // Собираем ВСЕ данные из localStorage
-    const allData = {};
-    let isEmpty = true;
+function exportMonthToFile() {
+    // Собираем ВСЕ месяцы из localStorage
+    const months = [];
+    const monthData = {};
     
-    // Проходим по всем ключам в localStorage
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         
-        // Ищем ключи формата budget_YYYY-MM
         if (key.startsWith('budget_')) {
-            const value = localStorage.getItem(key);
+            const monthKey = key.replace('budget_', '');
+            months.push(monthKey);
+            
             try {
-                const parsed = JSON.parse(value);
-                allData[key] = parsed;
-                isEmpty = false;
+                monthData[monthKey] = JSON.parse(localStorage.getItem(key));
             } catch (e) {
                 console.warn(`Ошибка парсинга ${key}:`, e);
             }
         }
     }
     
-    if (isEmpty) {
+    if (months.length === 0) {
         alert('❌ Нет данных для экспорта!');
         return;
     }
     
-    // Красивый JSON
-    const prettyJSON = JSON.stringify(allData, null, 2);
+    // Сортируем месяцы
+    months.sort().reverse();
     
-    // Создаём модаль с текстом
-    const exportModal = document.createElement('div');
-    exportModal.id = 'export-modal';
-    exportModal.className = 'modal active';
-    exportModal.innerHTML = `
-        <div class="modal-overlay" onclick="document.getElementById('export-modal').remove()">
+    // Создаём модаль с выбором месяца
+    const modal = document.createElement('div');
+    modal.id = 'export-month-modal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="document.getElementById('export-month-modal').remove()">
             <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header">
-                    <h2>📥 ЭКСПОРТИРОВАТЬ ВСЕ ДАННЫЕ</h2>
-                    <button class="modal-close" onclick="document.getElementById('export-modal').remove()">✕</button>
+                    <h2>📅 ВЫБЕРИ МЕСЯЦ ДЛЯ ЭКСПОРТА</h2>
+                    <button class="modal-close" onclick="document.getElementById('export-month-modal').remove()">✕</button>
                 </div>
-                <div class="modal-body">
-                    <p style="font-size: 12px; color: #999; margin-bottom: 10px;">
-                        💡 Все месяцы, категории и транзакции ниже
-                    </p>
-                    <textarea id="export-text" readonly style="
-                        width: 100%;
-                        height: 300px;
-                        padding: 10px;
-                        font-family: monospace;
-                        font-size: 11px;
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
-                        background: #f5f5f5;
-                        color: #333;
-                        box-sizing: border-box;
-                        overflow-y: auto;
-                    ">${prettyJSON}</textarea>
+                <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        ${months.map(month => `
+                            <button class="month-btn" onclick="downloadMonthData('${month}')" style="
+                                padding: 15px;
+                                border: 2px solid #ddd;
+                                border-radius: 8px;
+                                background: #f9f9f9;
+                                cursor: pointer;
+                                font-size: 14px;
+                                font-weight: 500;
+                                transition: all 0.2s;
+                            " onmouseover="this.style.background='#e8f0ff'; this.style.borderColor='#0066cc';" onmouseout="this.style.background='#f9f9f9'; this.style.borderColor='#ddd';">
+                                📆 ${getMonthNameFromKey('${month}')}
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-secondary" onclick="document.getElementById('export-modal').remove()">Закрыть</button>
-                    <button class="btn-primary" id="btn-copy-export" onclick="copyExportText()">📋 Скопировать</button>
+                    <button class="btn-secondary" onclick="document.getElementById('export-month-modal').remove()">Отмена</button>
                 </div>
             </div>
         </div>
     `;
     
-    document.body.appendChild(exportModal);
-    setTimeout(() => {
-        document.getElementById('export-text').select();
-    }, 100);
+    document.body.appendChild(modal);
 }
 
-function copyExportText() {
-    const textarea = document.getElementById('export-text');
-    textarea.select();
-    document.execCommand('copy');
-    
-    const btn = document.getElementById('btn-copy-export');
-    btn.textContent = '✅ Скопировано!';
-    setTimeout(() => {
-        btn.textContent = '📋 Скопировать';
-    }, 2000);
+function getMonthNameFromKey(monthKey) {
+    const [year, month] = monthKey.split('-');
+    const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+    return `${months[parseInt(month) - 1]} ${year}`;
 }
 
-function importDataFromText(jsonText) {
+function downloadMonthData(monthKey) {
     try {
-        const data = JSON.parse(jsonText);
-        const monthKey = `budget_${getCurrentMonth()}`;
-        localStorage.setItem(monthKey, JSON.stringify(data));
-        console.log('✅ Данные восстановлены из JSON');
-        alert('✅ Данные успешно восстановлены!');
+        const data = localStorage.getItem(`budget_${monthKey}`);
         
-        // Обновляем UI
-        if (window.UI) {
-            UI.refreshAll();
+        if (!data) {
+            alert('❌ Данные не найдены!');
+            return;
         }
         
-        return true;
+        const parsed = JSON.parse(data);
+        
+        // Создаём красивый JSON
+        const jsonString = JSON.stringify(parsed, null, 2);
+        
+        // Создаём blob
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        
+        // Создаём ссылку для скачивания
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `budget_${monthKey}.json`;
+        
+        // Скачиваем файл
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Очищаем объект URL
+        URL.revokeObjectURL(url);
+        
+        // Закрываем модаль
+        const modal = document.getElementById('export-month-modal');
+        if (modal) modal.remove();
+        
+        alert(`✅ Файл budget_${monthKey}.json скачан!`);
+        
     } catch (error) {
-        console.error('❌ Ошибка импорта:', error);
-        alert('❌ Ошибка: неверный формат JSON');
-        return false;
+        console.error('❌ Ошибка при скачивании:', error);
+        alert('❌ Ошибка при скачивании файла');
     }
 }
 
-function getCurrentMonth() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+// ========================================
+// ИМПОРТ МЕСЯЦА ИЗ ФАЙЛА
+// ========================================
+
+function importMonthFromFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                
+                // Проверяем структуру данных
+                if (!data.categories && !data.transactions) {
+                    alert('❌ Неверный формат файла!');
+                    return;
+                }
+                
+                // Извлекаем месяц из названия файла
+                const filename = file.name;
+                const monthMatch = filename.match(/budget_(\d{4}-\d{2})/);
+                
+                if (!monthMatch) {
+                    alert('❌ Не могу определить месяц из названия файла!');
+                    return;
+                }
+                
+                const monthKey = monthMatch[1];
+                
+                // Подтверждение
+                if (confirm(`Импортировать данные за ${getMonthNameFromKey(monthKey)}?`)) {
+                    localStorage.setItem(`budget_${monthKey}`, JSON.stringify(data));
+                    
+                    if (window.UI) {
+                        window.UI.refreshAll();
+                    }
+                    
+                    alert(`✅ Данные за ${getMonthNameFromKey(monthKey)} восстановлены!`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Ошибка парсинга JSON:', error);
+                alert('❌ Ошибка: неверный формат JSON в файле');
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    input.click();
 }
 
 // ========================================

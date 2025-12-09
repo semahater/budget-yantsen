@@ -752,10 +752,23 @@ function exportMonthToFile() {
 
 function getMonthNameFromKey(monthKey) {
     const [year, month] = monthKey.split('-');
-    const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
-                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-    return `${months[parseInt(month) - 1]} ${year}`;
+    const months = {
+        '01': 'Январь',
+        '02': 'Февраль',
+        '03': 'Март',
+        '04': 'Апрель',
+        '05': 'Май',
+        '06': 'Июнь',
+        '07': 'Июль',
+        '08': 'Август',
+        '09': 'Сентябрь',
+        '10': 'Октябрь',
+        '11': 'Ноябрь',
+        '12': 'Декабрь'
+    };
+    return `${months[month]} ${year}`;
 }
+
 
 function downloadMonthData(monthKey) {
     try {

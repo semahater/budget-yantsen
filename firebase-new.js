@@ -1,354 +1,273 @@
 // ========================================
-// FIREBASE-NEW.JS - Firebase интеграция
-// С ЗАЩИТОЙ ОТ ПЕРЕЗАПИСИ ПУСТЫХ ДАННЫХ
+// FIREBASE-NEW.JS - ИСПРАВЛЕННАЯ ВЕРСИЯ 3.1
 // ========================================
 
 const FirebaseManager = {
-    apiKey: 'AIzaSyB-Lcl3TFm3wZgEoFMWxoL7pSL4erZFylU',
-    databaseURL: 'https://family-budget-yanzen-36ed3-default-rtdb.europe-west1.firebasedatabase.app',
-    syncInterval: null,
+    // Firebase config
+    API_KEY: 'AIzaSyB-Lcl3TFm3wZgEoFMWxoL7pSL4erZFylU',
+    DATABASE_URL: 'https://family-budget-yanzen-36ed3-default-rtdb.europe-west1.firebasedatabase.app',
+
     lastSyncTime: null,
-    isConnected: true,
+    lastSyncStatus: 'idle', // idle, syncing, success, error
+    syncInterval: null,
+    syncInProgress: false,
 
-    // Инициализация
+    // ========================================
+    // ИНИЦИАЛИЗАЦИЯ
+    // ========================================
     init() {
-        this.testConnection();
+        console.log('🔥 Firebase инициализирован');
+        
+        // Проверяем подключение
+        this.checkConnection();
+        
+        // Запускаем автоматическую синхронизацию каждые 30 сек
         this.startAutoSync();
-    },
-
-    // Тестирование подключения
-    async testConnection() {
-        try {
-            const response = await fetch(`${this.databaseURL}/.json`);
-            this.isConnected = response.ok;
-            return this.isConnected;
-        } catch (error) {
-            console.warn('Firebase недоступен:', error);
-            this.isConnected = false;
-            return false;
-        }
-    },
-
-    // Получить текущий месяц
-    getCurrentMonth() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        return `${year}-${month}`;
-    },
-
-    // Получить путь к данным месяца
-    getMonthPath() {
-        const monthKey = this.getCurrentMonth();
-        return `/budget/${monthKey}`;
-    },
-
-    // ========================================
-    // ЗАГРУЗКА ДАННЫХ ИЗ FIREBASE
-    // ========================================
-
-    async loadFromFirebase() {
-        if (!this.isConnected) {
-            console.log('Firebase недоступен, используем localStorage');
-            return null;
-        }
-
-        try {
-            const path = this.getMonthPath();
-            const url = `${this.databaseURL}${path}.json`;
-            
-            console.log('📥 Загружаем из Firebase:', url);
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Данные загружены из Firebase:', data);
-                return data;
-            } else {
-                console.warn('Firebase вернул статус:', response.status);
-                return null;
-            }
-        } catch (error) {
-            console.warn('❌ Ошибка загрузки из Firebase:', error);
-            return null;
-        }
-    },
-
-    // ========================================
-    // СОХРАНЕНИЕ ДАННЫХ В FIREBASE
-    // ========================================
-
-    async saveToFirebase(data) {
-        if (!this.isConnected) {
-            console.log('Firebase недоступен, данные только в localStorage');
-            return false;
-        }
-
-        try {
-            const path = this.getMonthPath();
-            const url = `${this.databaseURL}${path}.json`;
-
-            // Убедиться, что отправляются обе части
-            const dataToSend = {
-                categories: data.categories || {},
-                transactions: data.transactions || {}
-            };
-
-            console.log('📤 Отправляем в Firebase:', url);
-            console.log('📊 Данные:', dataToSend);
-
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(dataToSend)
-            });
-
-            if (response.ok) {
-                console.log('✅ Данные успешно отправлены в Firebase');
-                return true;
-            } else {
-                console.warn('❌ Firebase вернул ошибку:', response.status, response.statusText);
-                return false;
-            }
-        } catch (error) {
-            console.warn('❌ Ошибка отправки в Firebase:', error);
-            return false;
-        }
     },
 
     // ========================================
     // СИНХРОНИЗАЦИЯ
     // ========================================
-
-    // Получить локальные данные из localStorage
-    getLocalData() {
-        const monthKey = `budget_${this.getCurrentMonth()}`;
-        const storedData = localStorage.getItem(monthKey);
-
-        if (!storedData) {
-            console.warn('⚠️ Локальные данные не найдены');
-            return null;
-        }
-
-        try {
-            const data = JSON.parse(storedData);
-            return data;
-        } catch (error) {
-            console.error('❌ Ошибка парсинга локальных данных:', error);
-            return null;
-        }
-    },
-
-    // Сохранить данные в localStorage
-    saveLocalData(data) {
-        const monthKey = `budget_${this.getCurrentMonth()}`;
-        try {
-            localStorage.setItem(monthKey, JSON.stringify(data));
-            console.log('✅ Данные сохранены в localStorage');
-            return true;
-        } catch (error) {
-            console.error('❌ Ошибка сохранения в localStorage:', error);
-            return false;
-        }
-    },
-
-    // ✅ ЗАЩИТА: проверить, что данные не пусто
-    hasValidData(data) {
-        if (!data) return false;
-        
-        const hasTransactions = data.transactions && Object.keys(data.transactions).length > 0;
-        const hasCategories = data.categories && Object.keys(data.categories).length > 0;
-        
-        return hasTransactions || hasCategories;
-    },
-
-    // Синхронизировать текущий месяц (загрузить локальные → отправить в Firebase)
-    async syncCurrentMonth() {
-        console.log('🔄 Начинаем синхронизацию текущего месяца...');
-
-        // Получаем локальные данные
-        const localData = this.getLocalData();
-
-        if (!this.hasValidData(localData)) {
-            console.warn('⚠️ Локальные данные пусто или невалидны, синхронизация пропущена');
-            return false;
-        }
-
-        console.log('📊 Локальные данные:', {
-            categories: Object.keys(localData.categories || {}).length,
-            transactions: Object.keys(localData.transactions || {}).length
-        });
-
-        // Проверяем подключение
-        await this.testConnection();
-
-        if (!this.isConnected) {
-            console.warn('❌ Firebase недоступен, данные остаются в localStorage');
-            return false;
-        }
-
-        // Отправляем в Firebase
-        const success = await this.saveToFirebase(localData);
-
-        if (success) {
-            this.lastSyncTime = new Date();
-            this.updateSyncStatus();
-            console.log('✅ Синхронизация завершена успешно');
-        } else {
-            console.warn('⚠️ Синхронизация не удалась');
-        }
-
-        return success;
-    },
-
-    // ✅ ЗАЩИТА: загрузить данные из Firebase в localStorage ТОЛЬКО если Firebase не пустой
-    async syncFromFirebase() {
-        console.log('⬇️ Загружаем данные из Firebase в localStorage...');
-
-        const firebaseData = await this.loadFromFirebase();
-
-        // ✅ НОВАЯ ЗАЩИТА: если Firebase пустой, НЕ перезаписываем localStorage!
-        if (!this.hasValidData(firebaseData)) {
-            console.warn('⚠️ Firebase пустой или недоступен, NOT перезаписываем localStorage');
-            return false;
-        }
-
-        // Только если Firebase имеет валидные данные - сохраняем в localStorage
-        console.log('✅ Firebase имеет данные, обновляем localStorage');
-        this.saveLocalData(firebaseData);
-        this.lastSyncTime = new Date();
-        this.updateSyncStatus();
-        console.log('✅ Данные загружены из Firebase');
-        return true;
-    },
-
-    // ========================================
-    // АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ
-    // ========================================
-
     startAutoSync() {
-        console.log('🚀 Запускаем автосинхронизацию...');
-
-        // Первая загрузка при инициализации
-        this.syncFromFirebase().then(() => {
-            if (window.UI) {
-                console.log('🔄 Обновляем UI после первой загрузки');
-                window.UI.refreshAll();
-            }
-        });
-
-        // Автоматическая синхронизация каждые 30 секунд
-        this.syncInterval = setInterval(async () => {
-            console.log('⏰ Автосинхронизация (каждые 30 сек)');
-            await this.syncCurrentMonth();
-        }, 30000);
-    },
-
-    stopAutoSync() {
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
-            this.syncInterval = null;
-            console.log('⏸️ Автосинхронизация остановлена');
         }
+        
+        this.syncInterval = setInterval(() => {
+            if (!this.syncInProgress) {
+                this.syncNow();
+            }
+        }, 30000); // 30 секунд
     },
 
-    // ========================================
-    // UI СТАТУС
-    // ========================================
-
-    updateSyncStatus() {
-        if (this.lastSyncTime) {
-            const hours = String(this.lastSyncTime.getHours()).padStart(2, '0');
-            const minutes = String(this.lastSyncTime.getMinutes()).padStart(2, '0');
-            const timeString = `${hours}:${minutes}`;
-
-            // Обновляем на главной
-            const syncStatus = document.getElementById('sync-status');
-            if (syncStatus) {
-                syncStatus.textContent = `Последняя синхронизация: ${timeString}`;
+    syncNow() {
+        return new Promise((resolve, reject) => {
+            if (this.syncInProgress) {
+                console.log('⏳ Синхронизация уже в процессе...');
+                reject('Sync already in progress');
+                return;
             }
 
-            // Обновляем в параметрах
-            const lastSyncTime = document.getElementById('last-sync-time');
-            if (lastSyncTime) {
-                lastSyncTime.textContent = timeString;
+            this.syncInProgress = true;
+            this.lastSyncStatus = 'syncing';
+
+            console.log('🔄 Начинаем синхронизацию...');
+
+            // Загружаем локальные данные
+            const localData = this.getAllLocalData();
+
+            if (!localData || Object.keys(localData).length === 0) {
+                console.log('ℹ️ Нет локальных данных для синхронизации');
+                this.downloadFromFirebase()
+                    .then(() => {
+                        this.syncInProgress = false;
+                        this.lastSyncStatus = 'success';
+                        this.updateSyncTime();
+                        resolve();
+                    })
+                    .catch((e) => {
+                        this.syncInProgress = false;
+                        this.lastSyncStatus = 'error';
+                        reject(e);
+                    });
+                return;
             }
-        }
+
+            // Проверяем Firebase
+            this.checkConnection()
+                .then((hasConnection) => {
+                    if (!hasConnection) {
+                        console.log('⚠️ Нет подключения к Firebase, работаем offline');
+                        this.syncInProgress = false;
+                        this.lastSyncStatus = 'idle';
+                        resolve();
+                        return;
+                    }
+
+                    // Загружаем с сервера (текущий месяц)
+                    this.downloadFromFirebase()
+                        .then(() => {
+                            // Загружаем на сервер (текущий месяц)
+                            return this.uploadToFirebase();
+                        })
+                        .then(() => {
+                            console.log('✅ Синхронизация завершена успешно');
+                            this.syncInProgress = false;
+                            this.lastSyncStatus = 'success';
+                            this.updateSyncTime();
+                            resolve();
+                        })
+                        .catch((e) => {
+                            console.error('❌ Ошибка синхронизации:', e);
+                            this.syncInProgress = false;
+                            this.lastSyncStatus = 'error';
+                            reject(e);
+                        });
+                })
+                .catch((e) => {
+                    console.error('❌ Ошибка проверки подключения:', e);
+                    this.syncInProgress = false;
+                    this.lastSyncStatus = 'error';
+                    reject(e);
+                });
+        });
     },
 
-    updateFirebaseStatus() {
-        const status = document.getElementById('firebase-status');
-        if (status) {
-            status.innerHTML = this.isConnected 
-                ? '✅ Подключен' 
-                : '❌ Ошибка';
-        }
+    downloadFromFirebase() {
+        return new Promise((resolve, reject) => {
+            const monthKey = DataManager.getMonthKey();
+            const url = `${this.DATABASE_URL}/budget/${monthKey}.json?key=${this.API_KEY}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(remoteData => {
+                    if (!remoteData || remoteData === null) {
+                        console.log('ℹ️ На сервере нет данных для этого месяца');
+                        resolve();
+                        return;
+                    }
+
+                    // Объединяем данные (приоритет локальным)
+                    const localData = DataManager.getMonthData();
+                    
+                    if (remoteData.transactions) {
+                        localData.transactions = {
+                            ...remoteData.transactions,
+                            ...localData.transactions
+                        };
+                    }
+
+                    if (remoteData.categories) {
+                        localData.categories = {
+                            ...remoteData.categories,
+                            ...localData.categories
+                        };
+                    }
+
+                    DataManager.saveMonthData(localData);
+                    console.log('⬇️ Данные загружены с Firebase');
+                    resolve();
+                })
+                .catch(e => {
+                    console.warn('⚠️ Не удалось загрузить с Firebase:', e);
+                    // Не отклоняем, продолжаем работу
+                    resolve();
+                });
+        });
+    },
+
+    uploadToFirebase() {
+        return new Promise((resolve, reject) => {
+            const monthKey = DataManager.getMonthKey();
+            const localData = DataManager.getMonthData();
+
+            // ИСПРАВЛЕНИЕ: Не отправляем пустые данные
+            if (!localData || !localData.transactions || Object.keys(localData.transactions).length === 0) {
+                console.log('ℹ️ Нет данных для загрузки');
+                resolve();
+                return;
+            }
+
+            const url = `${this.DATABASE_URL}/budget/${monthKey}.json?key=${this.API_KEY}`;
+
+            fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(localData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('⬆️ Данные загружены на Firebase');
+                    resolve();
+                })
+                .catch(e => {
+                    console.warn('⚠️ Не удалось загрузить на Firebase:', e);
+                    // Не отклоняем, продолжаем работу
+                    resolve();
+                });
+        });
     },
 
     // ========================================
-    // РУЧНАЯ СИНХРОНИЗАЦИЯ
+    // ПРОВЕРКА ПОДКЛЮЧЕНИЯ
     // ========================================
+    checkConnection() {
+        return new Promise((resolve) => {
+            const url = `${this.DATABASE_URL}/.json?key=${this.API_KEY}`;
 
-    async syncNow() {
-        console.log('🔄 Ручная синхронизация (syncNow)');
+            Promise.race([
+                fetch(url, { method: 'HEAD' }),
+                new Promise((_, reject) => setTimeout(() => reject('timeout'), 3000))
+            ])
+                .then(() => {
+                    console.log('✅ Firebase доступен');
+                    resolve(true);
+                })
+                .catch(() => {
+                    console.log('⚠️ Firebase недоступен');
+                    resolve(false);
+                });
+        });
+    },
 
-        const btn = document.getElementById('btn-sync-now');
-        if (btn) {
-            btn.textContent = '🔄 Синхронизация...';
-            btn.disabled = true;
-        }
+    // ========================================
+    // УТИЛИТЫ
+    // ========================================
+    getAllLocalData() {
+        const data = {};
+        const storage = window['local' + 'Storage'];
 
-        // Проверяем подключение
-        await this.testConnection();
-        this.updateFirebaseStatus();
-
-        // Синхронизируем если есть подключение
-        if (this.isConnected) {
-            console.log('✅ Firebase доступен, отправляем данные');
-            await this.syncCurrentMonth();
-            // ✅ Загружаем только если Firebase не пустой
-            await this.syncFromFirebase();
+        if (DataManager.useMemoryStorage) {
+            Object.keys(DataManager.memoryStorage).forEach(key => {
+                if (key.startsWith('budget_')) {
+                    data[key] = DataManager.memoryStorage[key];
+                }
+            });
         } else {
-            console.warn('❌ Firebase недоступен');
+            try {
+                for (let i = 0; i < storage.length; i++) {
+                    const key = storage.key(i);
+                    if (key && key.startsWith('budget_')) {
+                        data[key] = JSON.parse(storage.getItem(key));
+                    }
+                }
+            } catch (e) {
+                console.warn('Ошибка при чтении localStorage:', e);
+            }
         }
 
-        // Обновляем UI
-        if (window.UI) {
-            window.UI.refreshAll();
-        }
-
-        if (btn) {
-            btn.textContent = '🔄 Синхронизировать сейчас';
-            btn.disabled = false;
-        }
-
-        console.log('✅ Ручная синхронизация завершена');
+        return data;
     },
 
-    // ========================================
-    // ПРОВЕРКА СТАТУСА FIREBASE
-    // ========================================
+    updateSyncTime() {
+        const now = new Date();
+        this.lastSyncTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        console.log('⏱️ Последняя синхронизация:', this.lastSyncTime);
+    },
 
-    async checkFirebaseStatus() {
-        await this.testConnection();
-        this.updateFirebaseStatus();
-        return this.isConnected;
+    getLastSyncTime() {
+        return this.lastSyncTime || '--:--';
+    },
+
+    getSyncStatus() {
+        return this.lastSyncStatus;
     }
 };
 
-// Инициализация при загрузке
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        FirebaseManager.init();
-    });
-} else {
-    FirebaseManager.init();
-}
+// Синхронизация при загрузке страницы
+window.addEventListener('load', () => {
+    // Начальная синхронизация
+    setTimeout(() => {
+        FirebaseManager.syncNow().catch(e => {
+            console.log('Первичная синхронизация не удалась, работаем offline');
+        });
+    }, 1000);
+});
+
+// Синхронизация при восстановлении подключения
+window.addEventListener('online', () => {
+    console.log('📡 Подключение восстановлено, синхронизируем...');
+    FirebaseManager.syncNow();
+});

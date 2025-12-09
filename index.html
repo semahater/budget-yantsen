@@ -2,263 +2,371 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>💰 Семейный Бюджет Янцен</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- DASHBOARD SCREEN -->
+    <div id="app">
+        <!-- ========================================
+             ЭКРАН: DASHBOARD
+             ======================================== -->
         <div id="screen-dashboard" class="screen active">
             <div class="header">
                 <h1>💰 Семейный Бюджет Янцен</h1>
-                <p id="sync-status">Последняя синхронизация: сейчас</p>
+                <div class="sync-status" id="sync-status">Последняя синхронизация: сейчас</div>
             </div>
 
+            <!-- Навигация по месяцам -->
             <div class="month-navigation">
-                <button id="btn-prev-month" class="btn btn-nav">◀</button>
-                <h2 id="current-month-label">Декабрь 2025</h2>
-                <button id="btn-next-month" class="btn btn-nav">▶</button>
+                <button id="btn-prev-month" class="btn-month">⬅️</button>
+                <div id="current-month-label" style="font-size: 18px; font-weight: 600; flex: 1; text-align: center;">Декабрь 2025</div>
+                <button id="btn-next-month" class="btn-month">➡️</button>
             </div>
 
-            <div class="stats-grid">
+            <!-- Статистика -->
+            <div class="stats-cards">
                 <div class="stat-card income">
-                    <span class="stat-label">💰 ДОХОД</span>
-                    <span class="stat-value" id="stat-income">0 ₽</span>
+                    <div class="stat-label">💰 ДОХОД</div>
+                    <div class="stat-value" id="stat-income">0 ₽</div>
                 </div>
                 <div class="stat-card expense">
-                    <span class="stat-label">💸 РАСХОДЫ</span>
-                    <span class="stat-value" id="stat-expense">0 ₽</span>
+                    <div class="stat-label">💸 РАСХОДЫ</div>
+                    <div class="stat-value" id="stat-expense">0 ₽</div>
                 </div>
                 <div class="stat-card balance">
-                    <span class="stat-label">⚖️ БАЛАНС</span>
-                    <span class="stat-value" id="stat-balance">0 ₽</span>
+                    <div class="stat-label">⚖️ БАЛАНС</div>
+                    <div class="stat-value" id="stat-balance">0 ₽</div>
                 </div>
             </div>
 
-            <div class="button-group">
-                <button id="btn-add-expense" class="btn btn-primary btn-large">💸 ДОБАВИТЬ РАСХОД</button>
-                <button id="btn-add-income" class="btn btn-success btn-large">💵 ДОБАВИТЬ ДОХОД</button>
+            <!-- Кнопки действий -->
+            <div class="action-buttons">
+                <button id="btn-add-expense" class="btn-action btn-expense">💸 ДОБАВИТЬ РАСХОД</button>
+                <button id="btn-add-income" class="btn-action btn-income">💵 ДОБАВИТЬ ДОХОД</button>
             </div>
 
-            <div class="chart-section">
-                <h3>Расходы по категориям</h3>
-                <div id="chart-empty" class="empty-message">Нет расходов за этот месяц</div>
+            <!-- Диаграмма расходов -->
+            <div style="margin-top: 20px; background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h3 style="margin-top: 0; font-size: 16px; font-weight: 600; margin-bottom: 16px;">Расходы по категориям</h3>
                 <canvas id="expenses-chart"></canvas>
-                <div id="chart-legend" class="chart-legend"></div>
+                <div id="chart-empty" style="text-align: center; color: #999; padding: 40px 20px; display: none;">
+                    Нет расходов за этот месяц
+                </div>
+                <div id="chart-legend" style="margin-top: 16px;"></div>
             </div>
         </div>
 
-        <!-- TRANSACTIONS SCREEN -->
+        <!-- ========================================
+             ЭКРАН: TRANSACTIONS
+             ======================================== -->
         <div id="screen-transactions" class="screen">
             <div class="header">
-                <h2>✏️ Операции за <span id="transactions-month">Декабрь 2025</span></h2>
+                <h1>✏️ Операции за <span id="transactions-month-label">Декабрь 2025</span></h1>
             </div>
-            <div id="transactions-list" class="transactions-list">
-                <div class="empty-message">Нет операций за этот месяц</div>
+
+            <div id="transactions-list" style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+                <p style="text-align: center; color: #999; padding: 40px 20px;">Нет операций за этот месяц</p>
             </div>
         </div>
 
-        <!-- CATEGORIES SCREEN -->
+        <!-- ========================================
+             ЭКРАН: CATEGORIES
+             ======================================== -->
         <div id="screen-categories" class="screen">
             <div class="header">
-                <h2>📋 Категории</h2>
-                <button id="btn-add-category" class="btn btn-primary">➕ ДОБАВИТЬ КАТЕГОРИЮ</button>
+                <h1>📋 Категории</h1>
+                <button id="btn-add-category" class="btn-primary" style="margin-top: 12px;">➕ ДОБАВИТЬ КАТЕГОРИЮ</button>
             </div>
-            <div id="categories-list" class="categories-list">
-                <div class="empty-message">Нет категорий</div>
+
+            <div id="categories-list" style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+                <p style="text-align: center; color: #999; padding: 40px 20px;">Нет категорий</p>
             </div>
         </div>
 
-        <!-- SETTINGS SCREEN -->
+        <!-- ========================================
+             ЭКРАН: SETTINGS
+             ======================================== -->
         <div id="screen-settings" class="screen">
             <div class="header">
-                <h2>⚙️ Параметры</h2>
+                <h1>⚙️ Параметры</h1>
             </div>
 
-            <div class="settings-section">
-                <h3>📊 Статистика за всё время</h3>
-                <div class="settings-row">
-                    <span>📈 Всего доходов:</span>
-                    <span id="total-income">0 ₽</span>
-                </div>
-                <div class="settings-row">
-                    <span>📉 Всего расходов:</span>
-                    <span id="total-expense">0 ₽</span>
-                </div>
-                <div class="settings-row">
-                    <span>💹 Средний доход/месяц:</span>
-                    <span id="avg-income">0 ₽</span>
-                </div>
-                <div class="settings-row">
-                    <span>📊 Средний расход/месяц:</span>
-                    <span id="avg-expense">0 ₽</span>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>ℹ️ Информация</h3>
-                <div class="settings-row">
-                    <span>🔗 Firebase:</span>
-                    <span>✅ Подключен</span>
-                </div>
-                <div class="settings-row">
-                    <span>⏱️ Последняя синхронизация:</span>
-                    <span id="last-sync-time">--:--</span>
-                </div>
-                <div class="settings-row">
-                    <span>📱 ID устройства:</span>
-                    <span id="device-id">device_...</span>
-                </div>
-                <div class="settings-row">
-                    <span>📲 Версия приложения:</span>
-                    <span>3.1</span>
+            <!-- Статистика за всё время -->
+            <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;">
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Статистика за всё время</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">📈 Всего доходов:</div>
+                        <div style="font-size: 20px; font-weight: 700; color: #10B981;" id="stat-all-time-income">0 ₽</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">📉 Всего расходов:</div>
+                        <div style="font-size: 20px; font-weight: 700; color: #EF4444;" id="stat-all-time-expense">0 ₽</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">💹 Средний доход/месяц:</div>
+                        <div style="font-size: 20px; font-weight: 700; color: #10B981;" id="stat-avg-income">0 ₽</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">📊 Средний расход/месяц:</div>
+                        <div style="font-size: 20px; font-weight: 700; color: #EF4444;" id="stat-avg-expense">0 ₽</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="settings-section">
-                <h3>🎯 Действия</h3>
-                <button id="btn-sync-now" class="btn btn-primary btn-full">🔄 Синхронизировать сейчас</button>
-                <button id="btn-share" class="btn btn-primary btn-full">📲 Поделиться ссылкой</button>
-                <button id="btn-export" class="btn btn-primary btn-full">📥 ЭКСПОРТИРОВАТЬ ДАННЫЕ</button>
-                <button id="btn-clear-data" class="btn btn-danger btn-full">⚠️ Очистить локальные данные</button>
+            <!-- Информация -->
+            <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;">
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Информация</h3>
+                <div style="font-size: 14px;">
+                    <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
+                        <span>🔗 Firebase:</span>
+                        <span id="firebase-status">✅ Подключен</span>
+                    </div>
+                    <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
+                        <span>⏱️ Последняя синхронизация:</span>
+                        <span id="last-sync-time">--:--</span>
+                    </div>
+                    <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
+                        <span>📱 ID устройства:</span>
+                        <span id="device-id" style="font-family: monospace; font-size: 12px;">device_...</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>📲 Версия приложения:</span>
+                        <span>3.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Действия -->
+            <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Действия</h3>
+                <button id="btn-sync-now" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">🔄 Синхронизировать сейчас</button>
+                <button id="btn-clear-data" class="btn-danger" style="width: 100%;">⚠️ Очистить локальные данные</button>
             </div>
         </div>
 
-        <!-- NAVIGATION BAR -->
-        <nav class="navigation">
+        <!-- ========================================
+             BOTTOM NAVIGATION
+             ======================================== -->
+        <div class="bottom-nav">
             <button class="nav-btn active" data-screen="dashboard">
-                <span class="nav-icon">🏠</span>
-                <span class="nav-label">Главная</span>
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Главная</div>
             </button>
             <button class="nav-btn" data-screen="transactions">
-                <span class="nav-icon">✏️</span>
-                <span class="nav-label">Операции</span>
+                <div class="nav-icon">✏️</div>
+                <div class="nav-label">Операции</div>
             </button>
             <button class="nav-btn" data-screen="categories">
-                <span class="nav-icon">📋</span>
-                <span class="nav-label">Категории</span>
+                <div class="nav-icon">📋</div>
+                <div class="nav-label">Категории</div>
             </button>
             <button class="nav-btn" data-screen="settings">
-                <span class="nav-icon">⚙️</span>
-                <span class="nav-label">Параметры</span>
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-label">Параметры</div>
             </button>
-        </nav>
+        </div>
     </div>
 
-    <!-- MODAL: ADD/EDIT EXPENSE -->
-    <div id="modal-expense" class="modal">
+    <!-- ========================================
+         МОДАЛИ: РАСХОД
+         ======================================== -->
+    <div id="modal-expense" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">💸 Добавить расход</h3>
-                <button class="btn-close" onclick="document.getElementById('modal-expense').style.display='none'">✕</button>
+                <h2>💸 Добавить расход</h2>
+                <button class="modal-close" onclick="UI.closeExpenseModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>Сумма *</label>
-                    <input type="number" placeholder="Сумма" min="0" step="0.01">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Сумма *</label>
+                    <input id="modal-expense-sum" type="number" class="form-control" placeholder="0" step="0.01" min="0">
                 </div>
-                <div class="form-group">
-                    <label>Категория *</label>
-                    <select name="category"></select>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Категория *</label>
+                    <select id="modal-expense-category" class="form-control"></select>
                 </div>
-                <div class="form-group">
-                    <label>Описание</label>
-                    <input type="text" placeholder="Описание (опционально)">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Описание</label>
+                    <input id="modal-expense-description" type="text" class="form-control" placeholder="Описание (опционально)">
                 </div>
-                <div class="form-group">
-                    <label>Дата *</label>
-                    <input type="date">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Дата *</label>
+                    <input id="modal-expense-date" type="date" class="form-control">
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="btn-cancel-expense" class="btn btn-secondary">Отмена</button>
-                <button id="btn-save-expense" class="btn btn-primary">OK</button>
+                <button class="btn-secondary" onclick="UI.closeExpenseModal()">Отмена</button>
+                <button class="btn-primary" onclick="UI.saveExpense()">ОК</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: ADD/EDIT INCOME -->
-    <div id="modal-income" class="modal">
+    <!-- ========================================
+         МОДАЛИ: ДОХОД
+         ======================================== -->
+    <div id="modal-income" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">💵 Добавить доход</h3>
-                <button class="btn-close" onclick="document.getElementById('modal-income').style.display='none'">✕</button>
+                <h2>💵 Добавить доход</h2>
+                <button class="modal-close" onclick="UI.closeIncomeModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>Сумма *</label>
-                    <input type="number" placeholder="Сумма" min="0" step="0.01">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Сумма *</label>
+                    <input id="modal-income-sum" type="number" class="form-control" placeholder="0" step="0.01" min="0">
                 </div>
-                <div class="form-group">
-                    <label>Описание</label>
-                    <input type="text" placeholder="Описание (опционально)">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Описание</label>
+                    <input id="modal-income-description" type="text" class="form-control" placeholder="Описание (опционально)">
                 </div>
-                <div class="form-group">
-                    <label>Дата *</label>
-                    <input type="date">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Дата *</label>
+                    <input id="modal-income-date" type="date" class="form-control">
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="btn-cancel-income" class="btn btn-secondary">Отмена</button>
-                <button id="btn-save-income" class="btn btn-primary">OK</button>
+                <button class="btn-secondary" onclick="UI.closeIncomeModal()">Отмена</button>
+                <button class="btn-primary" onclick="UI.saveIncome()">ОК</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: ADD/EDIT CATEGORY -->
-    <div id="modal-category" class="modal">
+    <!-- ========================================
+         МОДАЛИ: КАТЕГОРИЯ
+         ======================================== -->
+    <div id="modal-category" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">📋 Добавить категорию</h3>
-                <button class="btn-close" onclick="document.getElementById('modal-category').style.display='none'">✕</button>
+                <h2>📋 Добавить категорию</h2>
+                <button class="modal-close" onclick="UI.closeCategoryModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>Название *</label>
-                    <input type="text" placeholder="Название">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Название *</label>
+                    <input id="modal-category-name" type="text" class="form-control" placeholder="Название категории">
                 </div>
-                <div class="form-group">
-                    <label>Эмодзи</label>
-                    <input type="text" placeholder="Эмодзи" maxlength="2" value="📌">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Эмодзи</label>
+                    <input id="modal-category-emoji" type="text" class="form-control" placeholder="📌" maxlength="2">
                 </div>
-                <div class="form-group">
-                    <label>Цвет</label>
-                    <input type="color" value="#6B7280">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Цвет</label>
+                    <input id="modal-category-color" type="color" class="form-control" value="#6B7280">
                 </div>
-                <div class="form-group">
-                    <label>Лимит (0 = без лимита)</label>
-                    <input type="number" placeholder="Лимит (0 = без лимита)" min="0" value="0">
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label">Лимит (0 = без лимита)</label>
+                    <input id="modal-category-limit" type="number" class="form-control" placeholder="0" step="0.01" min="0">
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="btn-cancel-category" class="btn btn-secondary">Отмена</button>
-                <button id="btn-save-category" class="btn btn-primary">OK</button>
+                <button class="btn-secondary" onclick="UI.closeCategoryModal()">Отмена</button>
+                <button class="btn-primary" onclick="UI.saveCategory()">ОК</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: CATEGORY DETAILS -->
-    <div id="modal-category-details" class="modal">
-        <div class="modal-content modal-details">
-            <div class="modal-header">
-                <h3 class="modal-title">📊 Детали категории</h3>
-                <button class="btn-close" id="btn-close-category-details">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="category-details-header">
-                    <h4>Всего за месяц:</h4>
-                    <span class="category-total-sum">0 ₽</span>
+    <!-- ========================================
+         МОДАЛЬ: ДЕТАЛИ КАТЕГОРИИ (НОВОЕ)
+         ======================================== -->
+    <div id="modal-category-details" class="modal" style="display: none; align-items: flex-end;">
+        <div style="
+            width: 100%;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        ">
+            <!-- Заголовок -->
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 16px;
+            ">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span id="category-details-emoji" style="font-size: 32px; line-height: 1;"></span>
+                    <span id="category-details-name" style="font-size: 20px; font-weight: 700; color: #1F2937;"></span>
                 </div>
-                <div class="category-transactions-list">
-                    <div class="empty-message">Нет операций в этой категории</div>
-                </div>
+                <button onclick="UI.closeCategoryDetails()" style="
+                    background: none;
+                    border: none;
+                    font-size: 28px;
+                    cursor: pointer;
+                    color: #6B7280;
+                    padding: 0;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">✕</button>
             </div>
+            
+            <!-- Статистика -->
+            <div style="
+                background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+                padding: 16px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+                text-align: center;
+            ">
+                <div style="
+                    font-size: 12px;
+                    color: #6B7280;
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                ">ИТОГО ПОТРАЧЕНО</div>
+                <div id="category-details-total" style="font-size: 32px; font-weight: 700; color: #1F2937;">0 ₽</div>
+            </div>
+            
+            <!-- Список транзакций -->
+            <div style="margin-bottom: 20px;">
+                <div style="
+                    font-weight: 700;
+                    margin-bottom: 12px;
+                    color: #1F2937;
+                    font-size: 14px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                ">Операции в этой категории:</div>
+                <div id="category-transactions-list" style="
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    background: white;
+                "></div>
+            </div>
+            
+            <!-- Кнопка закрытия -->
+            <button onclick="UI.closeCategoryDetails()" style="
+                width: 100%;
+                padding: 16px;
+                background: #2C3E50;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 700;
+                font-size: 16px;
+                transition: background 0.2s;
+            " onmouseover="this.style.background='#1a252f'" onmouseout="this.style.background='#2C3E50'">
+                Закрыть
+            </button>
         </div>
     </div>
 
-    <!-- SCRIPTS -->
+    <!-- ========================================
+         СКРИПТЫ
+         ======================================== -->
     <script src="data.js"></script>
     <script src="firebase-new.js"></script>
     <script src="app.js"></script>
